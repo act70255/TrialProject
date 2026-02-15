@@ -1,0 +1,80 @@
+name: cloudfilemanager-sample
+
+services:
+  webapi:
+    build:
+      context: .
+      dockerfile: docker/webapi.Dockerfile
+    image: cloudfilemanager/webapi:sample
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      UseSwagger: "true"
+      ConfigVersion: ${CONFIG_VERSION:-1.0}
+      Storage__StorageRootPath: /app/storage
+      Database__Provider: Sqlite
+      Database__MigrateOnStartup: "true"
+      Database__ConnectionStrings__Sqlite: Data Source=/app/data/cloud-file-manager.sample.db
+      Output__XmlTarget: File
+      Output__XmlOutputPath: /app/output/tree.xml
+      Logging__EnableTraverseLog: "true"
+      ApiSecurity__HeaderName: X-Api-Key
+      ApiSecurity__ApiKey: ${API_SECURITY_KEY:-sample-local-api-key}
+    volumes:
+      - ./samples/mvp/storage:/app/storage
+      - ./samples/mvp/data:/app/data
+      - ./samples/mvp/output:/app/output
+    ports:
+      - "${SAMPLE_WEBAPI_PORT:-5281}:8080"
+    restart: unless-stopped
+    networks:
+      - cfm-sample-net
+
+  website:
+    build:
+      context: .
+      dockerfile: docker/website.Dockerfile
+    image: cloudfilemanager/website:sample
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      WebApiBaseUrl: http://webapi:8080/
+      ApiSecurity__HeaderName: X-Api-Key
+      ApiSecurity__ApiKey: ${API_SECURITY_KEY:-sample-local-api-key}
+    depends_on:
+      - webapi
+    ports:
+      - "${SAMPLE_WEBSITE_PORT:-5290}:8080"
+    restart: unless-stopped
+    networks:
+      - cfm-sample-net
+
+  console:
+    build:
+      context: .
+      dockerfile: docker/console.Dockerfile
+    image: cloudfilemanager/console:sample
+    environment:
+      ConfigVersion: ${CONFIG_VERSION:-1.0}
+      Storage__StorageRootPath: /app/storage
+      Database__Provider: Sqlite
+      # 由 webapi 負責 migration，避免 console 與 webapi 同時對 SQLite 執行 migration 造成鎖定衝突。
+      Database__MigrateOnStartup: "false"
+      Database__ConnectionStrings__Sqlite: Data Source=/app/data/cloud-file-manager.sample.db
+      Output__XmlTarget: File
+      Output__XmlOutputPath: /app/output/tree.xml
+      Logging__EnableTraverseLog: "true"
+    volumes:
+      - ./samples/mvp/storage:/app/storage
+      - ./samples/mvp/data:/app/data
+      - ./samples/mvp/output:/app/output
+    stdin_open: true
+    tty: true
+    # profiles:
+    #   - console
+    networks:
+      - cfm-sample-net
+
+networks:
+  cfm-sample-net:
+    driver: bridge

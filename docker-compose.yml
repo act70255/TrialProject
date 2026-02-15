@@ -1,0 +1,77 @@
+name: cloudfilemanager
+
+services:
+  webapi:
+    build:
+      context: .
+      dockerfile: docker/webapi.Dockerfile
+    image: cloudfilemanager/webapi:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      UseSwagger: "false"
+      ConfigVersion: ${CONFIG_VERSION:-1.0}
+      Storage__StorageRootPath: /app/storage
+      Database__Provider: Sqlite
+      Database__MigrateOnStartup: "true"
+      Database__ConnectionStrings__Sqlite: Data Source=/app/data/cloud-file-manager.db
+      Output__XmlTarget: File
+      Output__XmlOutputPath: /app/output/tree.xml
+      ApiSecurity__HeaderName: X-Api-Key
+      ApiSecurity__ApiKey: ${API_SECURITY_KEY:-change-this-in-production}
+    volumes:
+      - ${PROD_STORAGE_PATH:-./deploy/prod/storage}:/app/storage
+      - ${PROD_DATA_PATH:-./deploy/prod/data}:/app/data
+      - ${PROD_OUTPUT_PATH:-./deploy/prod/output}:/app/output
+    ports:
+      - "${WEBAPI_PORT:-5181}:8080"
+    restart: unless-stopped
+    networks:
+      - cfm-net
+
+  website:
+    build:
+      context: .
+      dockerfile: docker/website.Dockerfile
+    image: cloudfilemanager/website:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      WebApiBaseUrl: http://webapi:8080/
+      ApiSecurity__HeaderName: X-Api-Key
+      ApiSecurity__ApiKey: ${API_SECURITY_KEY:-change-this-in-production}
+    depends_on:
+      - webapi
+    ports:
+      - "${WEBSITE_PORT:-5190}:8080"
+    restart: unless-stopped
+    networks:
+      - cfm-net
+
+  console:
+    build:
+      context: .
+      dockerfile: docker/console.Dockerfile
+    image: cloudfilemanager/console:latest
+    environment:
+      ConfigVersion: ${CONFIG_VERSION:-1.0}
+      Storage__StorageRootPath: /app/storage
+      Database__Provider: Sqlite
+      Database__MigrateOnStartup: "false"
+      Database__ConnectionStrings__Sqlite: Data Source=/app/data/cloud-file-manager.db
+      Output__XmlTarget: File
+      Output__XmlOutputPath: /app/output/tree.xml
+    volumes:
+      - ${PROD_STORAGE_PATH:-./deploy/prod/storage}:/app/storage
+      - ${PROD_DATA_PATH:-./deploy/prod/data}:/app/data
+      - ${PROD_OUTPUT_PATH:-./deploy/prod/output}:/app/output
+    stdin_open: true
+    tty: true
+    profiles:
+      - console
+    networks:
+      - cfm-net
+
+networks:
+  cfm-net:
+    driver: bridge

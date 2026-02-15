@@ -1,0 +1,12 @@
+.vs/*
+/.vscode
+/scripts
+
+src/**/bin/
+src/**/obj/
+/tests/**/bin/
+/tests/**/obj/
+*.dll
+/tests/**/TestResults/
+*.db-shm
+*.db-wal

@@ -1,0 +1,12 @@
+.git
+.github
+.vs
+**/bin
+**/obj
+**/TestResults
+**/.DS_Store
+**/*.user
+**/*.suo
+README.md
+docs
+samples

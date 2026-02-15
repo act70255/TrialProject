@@ -1,0 +1,125 @@
+using CloudFileManager.Application.Interfaces;
+using CloudFileManager.Application.Models;
+using CloudFileManager.Presentation.WebApi.Model;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+namespace CloudFileManager.Presentation.WebApi.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/filesystem")]
+/// <summary>
+/// FileSystemController 類別，負責處理 HTTP 請求與回應。
+/// </summary>
+public sealed partial class FileSystemController : ControllerBase
+{
+    private static readonly Action<ILogger, string, string, bool, string?, Exception?> LogOperationCompletedMessage =
+        LoggerMessage.Define<string, string, bool, string?>(LogLevel.Information, new EventId(1201, "OperationCompleted"), "Operation completed. Method={Method}, Path={Path}, Success={Success}, ErrorCode={ErrorCode}");
+    private static readonly Action<ILogger, string, string, Exception?> LogFileContentDownloadFailedMessage =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(1202, "FileContentDownloadFailed"), "File content download failed. Path={Path}, Message={Message}");
+
+    private readonly ICloudFileApplicationService _service;
+    private readonly ILocalFileUploadRequestFactory _localFileUploadRequestFactory;
+    private readonly ILogger<FileSystemController> _logger;
+
+    /// <summary>
+    /// 初始化 FileSystemController。
+    /// </summary>
+    public FileSystemController(
+        ICloudFileApplicationService service,
+        ILocalFileUploadRequestFactory localFileUploadRequestFactory,
+        ILogger<FileSystemController> logger)
+    {
+        _service = service;
+        _localFileUploadRequestFactory = localFileUploadRequestFactory;
+        _logger = logger;
+    }
+
+    [HttpGet("tree")]
+    /// <summary>
+    /// 取得樹狀結構。
+    /// </summary>
+    public ActionResult<DirectoryTreeApiResponse> GetTree()
+    {
+        return Ok(_service.GetDirectoryTree().ToApi());
+    }
+
+    [HttpGet("size")]
+    /// <summary>
+    /// 計算容量。
+    /// </summary>
+    public ActionResult<SizeCalculationApiResponse> CalculateSize([FromQuery] CalculateSizeApiRequest request)
+    {
+        return Ok(_service.CalculateTotalSize(request.ToApplication()).ToApi());
+    }
+
+    [HttpGet("search")]
+    /// <summary>
+    /// 搜尋資料。
+    /// </summary>
+    public ActionResult<SearchApiResponse> Search([FromQuery] SearchByExtensionApiRequest request)
+    {
+        return Ok(_service.SearchByExtension(request.ToApplication()).ToApi());
+    }
+
+    [HttpGet("xml")]
+    /// <summary>
+    /// 匯出目錄樹 XML。
+    /// </summary>
+    public ActionResult<XmlExportApiResponse> ExportXml()
+    {
+        return Ok(_service.ExportXml().ToApi());
+    }
+
+    [HttpGet("feature-flags")]
+    /// <summary>
+    /// 取得功能旗標。
+    /// </summary>
+    public ActionResult<FeatureFlagsApiResponse> GetFeatureFlags()
+    {
+        return Ok(_service.GetFeatureFlags().ToApi());
+    }
+
+    private ActionResult<OperationApiResponse> ToOperationActionResult(OperationResult result)
+    {
+        LogOperationCompletedMessage(
+            _logger,
+            HttpContext.Request.Method,
+            HttpContext.Request.Path,
+            result.Success,
+            result.ErrorCode,
+            null);
+
+        OperationApiResponse response = result.ToApi();
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    private BadRequestObjectResult BadOperation(string message, string? errorCode = null)
+    {
+        return BadRequest(new OperationApiResponse(false, message, errorCode));
+    }
+
+    private static bool IsMissingUploadFile(UploadFileFormApiRequest request)
+    {
+        return request.File is null || request.File.Length == 0;
+    }
+
+    private UploadFileRequest BuildUploadRequest(string directoryPath, string fileName, string temporaryFilePath)
+    {
+        return _localFileUploadRequestFactory.Create(directoryPath, fileName, temporaryFilePath);
+    }
+
+    private IActionResult ToFileContentActionResult(FileDownloadResult result)
+    {
+        if (!result.Success || result.Content is null)
+        {
+            LogFileContentDownloadFailedMessage(_logger, HttpContext.Request.Path, result.Message, null);
+            return BadOperation(result.Message);
+        }
+
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+}

@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>CloudFileManager.Domain</PackageId>
+    <Description>Domain contract and model package for CloudFileManager.</Description>
+  </PropertyGroup>
+
+</Project>

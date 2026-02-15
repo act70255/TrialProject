@@ -1,0 +1,213 @@
+@model CloudFileManager.Presentation.Website.Models.HomeIndexViewModel
+
+@{
+    ViewData["Title"] = "雲端檔案管理器";
+}
+
+<h1 class="mb-3">雲端檔案管理器</h1>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        WebApi 呼叫失敗: @Model.ErrorMessage
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorCode))
+        {
+            <div><small>錯誤碼: @Model.ErrorCode</small></div>
+        }
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.OperationMessage) && Model.OperationSuccess.HasValue)
+{
+    <div class="alert @(Model.OperationSuccess.Value ? "alert-success" : "alert-danger")">
+        @Model.OperationMessage
+        @if (!string.IsNullOrWhiteSpace(Model.OperationErrorCode))
+        {
+            <div><small>錯誤碼: @Model.OperationErrorCode</small></div>
+        }
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">目錄樹</div>
+            <div class="card-body">
+                <pre class="mb-0">@string.Join("\n", Model.TreeLines)</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">建立目錄</div>
+            <div class="card-body">
+                <div class="text-muted small mb-2">路徑格式: <code>Root/Parent/Child</code></div>
+                <form asp-action="CreateDirectory" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="parentPath" placeholder="父層路徑 (例如 Root/WorkDocs)" required />
+                    <input class="form-control" name="directoryName" placeholder="目錄名稱 (例如 Reports2026)" required />
+                    <button class="btn btn-primary" type="submit">建立</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">上傳檔案</div>
+            <div class="card-body">
+                <div class="text-muted small mb-2">支援檔案: <code>.docx</code>, <code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>, <code>.txt</code></div>
+                <form asp-action="UploadFile" method="post" enctype="multipart/form-data" class="d-grid gap-2">
+                    <input class="form-control" name="directoryPath" value="Root" placeholder="目錄路徑 (例如 Root/WorkDocs)" required />
+                    <input class="form-control" type="file" name="file" required />
+                    <button class="btn btn-primary" type="submit">上傳</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">檔案操作</div>
+            <div class="card-body d-grid gap-3">
+                <div class="text-muted small">檔案路徑格式: <code>Root/Folder/file.ext</code></div>
+                <form asp-action="MoveFile" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="sourceFilePath" placeholder="來源檔案路徑 (例如 Root/WorkDocs/report.docx)" required />
+                    <input class="form-control" name="targetDirectoryPath" placeholder="目標目錄路徑 (例如 Root/Archive)" required />
+                    <button class="btn btn-outline-primary" type="submit">移動檔案</button>
+                </form>
+
+                <form asp-action="RenameFile" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="filePath" placeholder="檔案路徑 (例如 Root/WorkDocs/report.docx)" required />
+                    <input class="form-control" name="newFileName" placeholder="新檔案名稱 (例如 report-final.docx)" required />
+                    <button class="btn btn-outline-primary" type="submit">重命名檔案</button>
+                </form>
+
+                <form asp-action="DeleteFile" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="filePath" placeholder="檔案路徑 (例如 Root/WorkDocs/old.txt)" required />
+                    <button class="btn btn-outline-danger" type="submit">刪除檔案</button>
+                </form>
+
+                <form asp-action="DownloadFile" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="filePath" placeholder="檔案路徑 (例如 Root/WorkDocs/report.docx)" required />
+                    <button class="btn btn-outline-secondary" type="submit">下載至瀏覽器</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">目錄操作</div>
+            <div class="card-body d-grid gap-3">
+                <div class="text-muted small">目錄路徑格式: <code>Root/Folder/SubFolder</code></div>
+                <form asp-action="MoveDirectory" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="sourceDirectoryPath" placeholder="來源目錄路徑 (例如 Root/WorkDocs)" required />
+                    <input class="form-control" name="targetParentDirectoryPath" placeholder="目標父層路徑 (例如 Root/Archive)" required />
+                    <button class="btn btn-outline-primary" type="submit">移動目錄</button>
+                </form>
+
+                <form asp-action="RenameDirectory" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="directoryPath" placeholder="目錄路徑 (例如 Root/WorkDocs)" required />
+                    <input class="form-control" name="newDirectoryName" placeholder="新目錄名稱 (例如 WorkDocs-2026)" required />
+                    <button class="btn btn-outline-primary" type="submit">重命名目錄</button>
+                </form>
+
+                <form asp-action="DeleteDirectory" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="directoryPath" placeholder="目錄路徑 (例如 Root/Temp)" required />
+                    <button class="btn btn-outline-danger" type="submit">刪除目錄</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">搜尋 / 計算大小</div>
+            <div class="card-body d-grid gap-3">
+                <div class="text-muted small">範例: 路徑 <code>Root/Archive</code>, 副檔名 <code>.docx</code></div>
+                <form asp-action="CalculateSize" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="path" value="Root" placeholder="目錄路徑 (例如 Root/Archive)" required />
+                    <button class="btn btn-outline-primary" type="submit">計算大小</button>
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(Model.SizeFormatted))
+                {
+                    <div>
+                        <div><strong>路徑:</strong> @Model.SizePath</div>
+                        <div><strong>大小:</strong> @Model.SizeFormatted</div>
+                        @if (Model.SizeTraverseLog.Count > 0)
+                        {
+                            <pre class="mt-2 mb-0">@string.Join("\n", Model.SizeTraverseLog)</pre>
+                        }
+                    </div>
+                }
+
+                <form asp-action="Search" method="post" class="d-grid gap-2">
+                    <input class="form-control" name="extension" placeholder="副檔名 (例如 .docx / .png / .txt)" required />
+                    <button class="btn btn-outline-primary" type="submit">搜尋</button>
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(Model.SearchExtension))
+                {
+                    <div>
+                        <div><strong>副檔名:</strong> @Model.SearchExtension</div>
+                        <pre class="mt-2 mb-0">@string.Join("\n", Model.SearchPaths)</pre>
+                        @if (Model.SearchTraverseLog.Count > 0)
+                        {
+                            <pre class="mt-2 mb-0">@string.Join("\n", Model.SearchTraverseLog)</pre>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">XML / 功能旗標</div>
+            <div class="card-body d-grid gap-3">
+                <div class="text-muted small">XML 匯出目前的目錄樹快照；功能旗標顯示執行階段開關。</div>
+                <form asp-action="ExportXml" method="post">
+                    <button class="btn btn-outline-primary" type="submit">匯出 XML</button>
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(Model.XmlContent))
+                {
+                    <div>
+                        <pre class="mb-0">@Model.XmlContent</pre>
+                        @if (!string.IsNullOrWhiteSpace(Model.XmlOutputPath))
+                        {
+                            <div class="mt-2"><strong>已儲存:</strong> @Model.XmlOutputPath</div>
+                        }
+                    </div>
+                }
+
+                <form asp-action="LoadFeatureFlags" method="post">
+                    <button class="btn btn-outline-primary" type="submit">載入功能旗標</button>
+                </form>
+
+                @if (Model.FeatureFlags.Count > 0)
+                {
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>旗標</th>
+                                <th>值</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pair in Model.FeatureFlags)
+                            {
+                                <tr>
+                                    <td>@pair.Key</td>
+                                    <td>@pair.Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>

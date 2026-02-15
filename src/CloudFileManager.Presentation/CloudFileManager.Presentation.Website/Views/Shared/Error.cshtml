@@ -1,0 +1,25 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "錯誤";
+}
+
+<h1 class="text-danger">錯誤。</h1>
+<h2 class="text-danger">處理您的請求時發生錯誤。</h2>
+
+@if (Model.ShowRequestId)
+{
+    <p>
+        <strong>請求 ID:</strong> <code>@Model.RequestId</code>
+    </p>
+}
+
+<h3>開發模式</h3>
+<p>
+    切換到 <strong>開發</strong> 環境將顯示有關所發生錯誤的更詳細資訊。
+</p>
+<p>
+    <strong>不應為已部署的應用程式啟用開發環境。</strong>
+    它可能會導致向使用者顯示來自例外狀況的敏感資訊。
+    若要在本機偵錯，請將 <strong>ASPNETCORE_ENVIRONMENT</strong> 環境變數設定為 <strong>Development</strong>
+    然後重新啟動應用程式。
+</p>

@@ -111,9 +111,10 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
 
             return new OperationResult(true, "File uploaded.");
         }
-        catch (InvalidOperationException ex) { return new OperationResult(false, ex.Message); }
-        catch (ArgumentException ex) { return new OperationResult(false, ex.Message); }
-        catch { return new OperationResult(false, "Upload failed due to an unexpected error.", OperationErrorCodes.UnexpectedError); }
+        catch (Exception ex)
+        {
+            return MapValidationOrUnexpectedError(ex, "Upload failed due to an unexpected error.");
+        }
     }
 
     public async Task<OperationResult> UploadFileAsync(UploadFileRequest request, CancellationToken cancellationToken = default)
@@ -166,9 +167,10 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
 
             return new OperationResult(true, "File uploaded.");
         }
-        catch (InvalidOperationException ex) { return new OperationResult(false, ex.Message); }
-        catch (ArgumentException ex) { return new OperationResult(false, ex.Message); }
-        catch { return new OperationResult(false, "Upload failed due to an unexpected error.", OperationErrorCodes.UnexpectedError); }
+        catch (Exception ex)
+        {
+            return MapValidationOrUnexpectedError(ex, "Upload failed due to an unexpected error.");
+        }
     }
 
     private OperationResult? TryPrepareUpload(UploadFileRequest request, out UploadPreparation? preparation)
@@ -178,24 +180,24 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         string? fileNameError = NodeNameValidator.Validate(request.FileName, "File");
         if (fileNameError is not null)
         {
-            return new OperationResult(false, fileNameError);
+            return new OperationResult(false, fileNameError, OperationErrorCodes.ValidationFailed);
         }
 
         string extension = Path.GetExtension(request.FileName);
         if (!_extensionPolicy.IsAllowedAny(extension))
         {
-            return new OperationResult(false, $"Unsupported file extension: {extension}");
+            return new OperationResult(false, $"Unsupported file extension: {extension}", OperationErrorCodes.ValidationFailed);
         }
 
         if (request.Size > _config.Management.MaxUploadSizeBytes)
         {
-            return new OperationResult(false, $"Upload size exceeds limit: {_config.Management.MaxUploadSizeBytes} bytes");
+            return new OperationResult(false, $"Upload size exceeds limit: {_config.Management.MaxUploadSizeBytes} bytes", OperationErrorCodes.PolicyViolation);
         }
 
         CloudDirectory? directory = CloudFileTreeLookup.FindDirectory(_root, request.DirectoryPath);
         if (directory is null)
         {
-            return new OperationResult(false, $"Directory not found: {request.DirectoryPath}");
+            return new OperationResult(false, $"Directory not found: {request.DirectoryPath}", OperationErrorCodes.ResourceNotFound);
         }
 
         UploadFileRequest normalizedRequest = request;
@@ -207,7 +209,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
             switch (_config.Management.GetFileConflictPolicy())
             {
                 case FileConflictPolicyType.Reject:
-                    return new OperationResult(false, $"File already exists: {request.FileName}");
+                    return new OperationResult(false, $"File already exists: {request.FileName}", OperationErrorCodes.NameConflict);
                 case FileConflictPolicyType.Overwrite:
                     replaceExistingFile = true;
                     break;
@@ -226,7 +228,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
                         request.SourceLocalPath);
                     break;
                 default:
-                    return new OperationResult(false, $"Unsupported file conflict policy: {_config.Management.FileConflictPolicy}");
+                    return new OperationResult(false, $"Unsupported file conflict policy: {_config.Management.FileConflictPolicy}", OperationErrorCodes.PolicyViolation);
             }
         }
 
@@ -270,7 +272,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         if (sourceResult.File is null)
         {
             LogDownloadFileNotFoundMessage(_logger, request.FilePath, null);
-            return new OperationResult(false, $"File not found: {request.FilePath}");
+            return new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         return _storageMetadataGateway.DownloadFile(request.FilePath, request.TargetLocalPath);
@@ -281,7 +283,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         var sourceResult = CloudFileTreeLookup.FindFileWithParent(_root, request.FilePath);
         if (sourceResult.File is null)
         {
-            return Task.FromResult(new OperationResult(false, $"File not found: {request.FilePath}"));
+            return Task.FromResult(new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound));
         }
 
         return _storageMetadataGateway.DownloadFileAsync(request.FilePath, request.TargetLocalPath, cancellationToken);
@@ -322,14 +324,14 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogMoveSourceNotFoundMessage(_logger, request.SourceFilePath, null);
-            return new OperationResult(false, $"File not found: {request.SourceFilePath}");
+            return new OperationResult(false, $"File not found: {request.SourceFilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         CloudDirectory? targetDirectory = CloudFileTreeLookup.FindDirectory(_root, request.TargetDirectoryPath);
         if (targetDirectory is null)
         {
             LogMoveTargetNotFoundMessage(_logger, request.TargetDirectoryPath, null);
-            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}");
+            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}", OperationErrorCodes.ResourceNotFound);
         }
 
         {
@@ -352,7 +354,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         catch (InvalidOperationException ex)
         {
             sourceResult.ParentDirectory.AddFile(sourceResult.File);
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.NameConflict);
         }
         catch
         {
@@ -369,14 +371,14 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogMoveSourceNotFoundMessage(_logger, request.SourceFilePath, null);
-            return new OperationResult(false, $"File not found: {request.SourceFilePath}");
+            return new OperationResult(false, $"File not found: {request.SourceFilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         CloudDirectory? targetDirectory = CloudFileTreeLookup.FindDirectory(_root, request.TargetDirectoryPath);
         if (targetDirectory is null)
         {
             LogMoveTargetNotFoundMessage(_logger, request.TargetDirectoryPath, null);
-            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}");
+            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}", OperationErrorCodes.ResourceNotFound);
         }
 
         OperationResult persistenceResult = await _storageMetadataGateway.MoveFileAsync(request.SourceFilePath, request.TargetDirectoryPath, cancellationToken);
@@ -397,7 +399,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         catch (InvalidOperationException ex)
         {
             sourceResult.ParentDirectory.AddFile(sourceResult.File);
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.NameConflict);
         }
         catch
         {
@@ -416,14 +418,14 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         string? fileNameError = NodeNameValidator.Validate(request.NewFileName, "File");
         if (fileNameError is not null)
         {
-            return new OperationResult(false, fileNameError);
+            return new OperationResult(false, fileNameError, OperationErrorCodes.ValidationFailed);
         }
 
         var sourceResult = CloudFileTreeLookup.FindFileWithParent(_root, request.FilePath);
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogRenameSourceNotFoundMessage(_logger, request.FilePath, null);
-            return new OperationResult(false, $"File not found: {request.FilePath}");
+            return new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         {
@@ -440,11 +442,11 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         }
         catch (InvalidOperationException ex)
         {
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed);
         }
         catch (ArgumentException ex)
         {
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed);
         }
         catch
         {
@@ -459,14 +461,14 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         string? fileNameError = NodeNameValidator.Validate(request.NewFileName, "File");
         if (fileNameError is not null)
         {
-            return new OperationResult(false, fileNameError);
+            return new OperationResult(false, fileNameError, OperationErrorCodes.ValidationFailed);
         }
 
         var sourceResult = CloudFileTreeLookup.FindFileWithParent(_root, request.FilePath);
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogRenameSourceNotFoundMessage(_logger, request.FilePath, null);
-            return new OperationResult(false, $"File not found: {request.FilePath}");
+            return new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         OperationResult persistenceResult = await _storageMetadataGateway.RenameFileAsync(request.FilePath, request.NewFileName, cancellationToken);
@@ -481,11 +483,11 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         }
         catch (InvalidOperationException ex)
         {
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed);
         }
         catch (ArgumentException ex)
         {
-            return new OperationResult(false, ex.Message);
+            return new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed);
         }
         catch
         {
@@ -504,7 +506,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogDeleteSourceNotFoundMessage(_logger, request.FilePath, null);
-            return new OperationResult(false, $"File not found: {request.FilePath}");
+            return new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         {
@@ -527,7 +529,7 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         if (sourceResult.ParentDirectory is null || sourceResult.File is null)
         {
             LogDeleteSourceNotFoundMessage(_logger, request.FilePath, null);
-            return new OperationResult(false, $"File not found: {request.FilePath}");
+            return new OperationResult(false, $"File not found: {request.FilePath}", OperationErrorCodes.ResourceNotFound);
         }
 
         OperationResult persistenceResult = await _storageMetadataGateway.DeleteFileAsync(request.FilePath, cancellationToken);
@@ -540,5 +542,156 @@ public sealed class CloudFileFileCommandService : ICloudFileFileCommandService
         return removed
             ? new OperationResult(true, "File deleted.")
             : new OperationResult(false, "Unable to remove file from memory tree.");
+    }
+
+    public OperationResult CopyFile(CopyFileRequest request)
+    {
+        var sourceResult = CloudFileTreeLookup.FindFileWithParent(_root, request.SourceFilePath);
+        if (sourceResult.File is null)
+        {
+            return new OperationResult(false, $"Source file not found: {request.SourceFilePath}", OperationErrorCodes.ResourceNotFound);
+        }
+
+        CloudDirectory? targetDirectory = CloudFileTreeLookup.FindDirectory(_root, request.TargetDirectoryPath);
+        if (targetDirectory is null)
+        {
+            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}", OperationErrorCodes.ResourceNotFound);
+        }
+
+        string targetFileName = string.IsNullOrWhiteSpace(request.NewFileName)
+            ? sourceResult.File.Name
+            : request.NewFileName.Trim();
+
+        if (targetDirectory.Files.Any(item => item.Name.Equals(targetFileName, StringComparison.OrdinalIgnoreCase)) ||
+            targetDirectory.Directories.Any(item => item.Name.Equals(targetFileName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return new OperationResult(false, $"Name conflict: {targetFileName}", OperationErrorCodes.NameConflict);
+        }
+
+        string? temporarySourcePath = null;
+        try
+        {
+            temporarySourcePath = CreateTemporarySourceCopyIfAvailable(request.SourceFilePath, sourceResult.File.Name);
+            UploadFileRequest uploadRequest = BuildCopyUploadRequest(sourceResult.File, request.TargetDirectoryPath, targetFileName, temporarySourcePath);
+            return UploadFile(uploadRequest);
+        }
+        catch (Exception ex)
+        {
+            return MapValidationOrUnexpectedError(ex, "Copy file failed due to an unexpected error.", OperationErrorCodes.CopyFileUnexpected);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(temporarySourcePath);
+        }
+    }
+
+    public async Task<OperationResult> CopyFileAsync(CopyFileRequest request, CancellationToken cancellationToken = default)
+    {
+        var sourceResult = CloudFileTreeLookup.FindFileWithParent(_root, request.SourceFilePath);
+        if (sourceResult.File is null)
+        {
+            return new OperationResult(false, $"Source file not found: {request.SourceFilePath}", OperationErrorCodes.ResourceNotFound);
+        }
+
+        CloudDirectory? targetDirectory = CloudFileTreeLookup.FindDirectory(_root, request.TargetDirectoryPath);
+        if (targetDirectory is null)
+        {
+            return new OperationResult(false, $"Target directory not found: {request.TargetDirectoryPath}", OperationErrorCodes.ResourceNotFound);
+        }
+
+        string targetFileName = string.IsNullOrWhiteSpace(request.NewFileName)
+            ? sourceResult.File.Name
+            : request.NewFileName.Trim();
+
+        if (targetDirectory.Files.Any(item => item.Name.Equals(targetFileName, StringComparison.OrdinalIgnoreCase)) ||
+            targetDirectory.Directories.Any(item => item.Name.Equals(targetFileName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return new OperationResult(false, $"Name conflict: {targetFileName}", OperationErrorCodes.NameConflict);
+        }
+
+        string? temporarySourcePath = null;
+        try
+        {
+            temporarySourcePath = await CreateTemporarySourceCopyIfAvailableAsync(request.SourceFilePath, sourceResult.File.Name, cancellationToken);
+            UploadFileRequest uploadRequest = BuildCopyUploadRequest(sourceResult.File, request.TargetDirectoryPath, targetFileName, temporarySourcePath);
+            return await UploadFileAsync(uploadRequest, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return MapValidationOrUnexpectedError(ex, "Copy file failed due to an unexpected error.", OperationErrorCodes.CopyFileUnexpected);
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(temporarySourcePath);
+        }
+    }
+
+    private static UploadFileRequest BuildCopyUploadRequest(CloudFile sourceFile, string targetDirectoryPath, string targetFileName, string? sourceLocalPath)
+    {
+        return sourceFile switch
+        {
+            WordFile wordFile => new UploadFileRequest(targetDirectoryPath, targetFileName, sourceFile.Size, PageCount: wordFile.PageCount, SourceLocalPath: sourceLocalPath),
+            ImageFile imageFile => new UploadFileRequest(targetDirectoryPath, targetFileName, sourceFile.Size, Width: imageFile.Width, Height: imageFile.Height, SourceLocalPath: sourceLocalPath),
+            TextFile textFile => new UploadFileRequest(targetDirectoryPath, targetFileName, sourceFile.Size, Encoding: textFile.Encoding, SourceLocalPath: sourceLocalPath),
+            _ => new UploadFileRequest(targetDirectoryPath, targetFileName, sourceFile.Size, SourceLocalPath: sourceLocalPath)
+        };
+    }
+
+    private string? CreateTemporarySourceCopyIfAvailable(string sourceFilePath, string sourceFileName)
+    {
+        FileDownloadResult downloadResult = _storageMetadataGateway.DownloadFileContent(sourceFilePath);
+        if (!downloadResult.Success || downloadResult.Content is null)
+        {
+            return null;
+        }
+
+        string extension = Path.GetExtension(sourceFileName);
+        string tempPath = Path.Combine(Path.GetTempPath(), $"cfm-copy-{Guid.NewGuid():N}{extension}");
+        File.WriteAllBytes(tempPath, downloadResult.Content);
+        return tempPath;
+    }
+
+    private async Task<string?> CreateTemporarySourceCopyIfAvailableAsync(string sourceFilePath, string sourceFileName, CancellationToken cancellationToken)
+    {
+        FileDownloadResult downloadResult = await _storageMetadataGateway.DownloadFileContentAsync(sourceFilePath, cancellationToken);
+        if (!downloadResult.Success || downloadResult.Content is null)
+        {
+            return null;
+        }
+
+        string extension = Path.GetExtension(sourceFileName);
+        string tempPath = Path.Combine(Path.GetTempPath(), $"cfm-copy-{Guid.NewGuid():N}{extension}");
+        await File.WriteAllBytesAsync(tempPath, downloadResult.Content, cancellationToken);
+        return tempPath;
+    }
+
+    private static OperationResult MapValidationOrUnexpectedError(Exception ex, string unexpectedMessage, string unexpectedErrorCode = OperationErrorCodes.UnexpectedError)
+    {
+        return ex switch
+        {
+            InvalidOperationException => new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed),
+            ArgumentException => new OperationResult(false, ex.Message, OperationErrorCodes.ValidationFailed),
+            _ => new OperationResult(false, unexpectedMessage, unexpectedErrorCode)
+        };
+    }
+
+    private static void TryDeleteTemporaryFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Ignore temporary cleanup failures.
+        }
     }
 }

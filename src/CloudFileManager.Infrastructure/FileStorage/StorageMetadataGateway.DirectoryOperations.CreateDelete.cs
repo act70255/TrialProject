@@ -44,7 +44,7 @@ public sealed partial class StorageMetadataGateway
             RelativePath = ToStoredPath(fullPath)
         });
 
-        return ExecuteSaveWithRollback(
+        OperationResult persistenceResult = ExecuteSaveWithRollback(
             restoreEntityState: () => _dbContext.ChangeTracker.Clear(),
             rollbackPhysicalState: () => DeleteDirectoryIfExists(fullPath),
             successAuditEntry: $"CREATE_DIRECTORY|{parentPath}|{directoryName}|SUCCESS",
@@ -52,6 +52,13 @@ public sealed partial class StorageMetadataGateway
             successMessage: "Directory persisted.",
             rollbackFailureMessage: "Database update failed after physical create. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.CreateDirectoryUnexpected);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     public Task<OperationResult> CreateDirectoryAsync(string parentPath, string directoryName, CancellationToken cancellationToken = default)
@@ -96,7 +103,7 @@ public sealed partial class StorageMetadataGateway
             RelativePath = ToStoredPath(fullPath)
         });
 
-        return await ExecuteSaveWithRollbackAsync(
+        OperationResult persistenceResult = await ExecuteSaveWithRollbackAsync(
             restoreEntityState: () => _dbContext.ChangeTracker.Clear(),
             rollbackPhysicalState: () => DeleteDirectoryIfExists(fullPath),
             successAuditEntry: $"CREATE_DIRECTORY|{parentPath}|{directoryName}|SUCCESS",
@@ -105,6 +112,13 @@ public sealed partial class StorageMetadataGateway
             rollbackFailureMessage: "Database update failed after physical create. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.CreateDirectoryUnexpected,
             cancellationToken: cancellationToken);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     public OperationResult DeleteDirectory(string directoryPath)
@@ -165,6 +179,7 @@ public sealed partial class StorageMetadataGateway
                 OperationErrorCodes.DeleteDirectoryCleanupFailed);
         }
 
+        InvalidateRootTreeCache();
         return persistenceResult;
     }
 
@@ -232,6 +247,7 @@ public sealed partial class StorageMetadataGateway
                 OperationErrorCodes.DeleteDirectoryCleanupFailed);
         }
 
+        InvalidateRootTreeCache();
         return persistenceResult;
     }
 

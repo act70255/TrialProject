@@ -2,8 +2,6 @@ namespace CloudFileManager.Application.Configuration;
 
 public static class ConfigValidator
 {
-    private const string TraversalMode = "DFS_PRE_ORDER";
-    private const string SiblingOrder = "CREATION_ORDER";
     private const string LogLevelInfo = "Info";
     private const string LogLevelDebug = "Debug";
     private const string XmlTargetConsole = "Console";
@@ -14,8 +12,6 @@ public static class ConfigValidator
     private static readonly IReadOnlyList<ValidationRule> SharedRules =
     [
         new ValidationRule(ValidateVersion),
-        new ValidationRule(ValidateTraversalMode),
-        new ValidationRule(ValidateSiblingOrder),
         new ValidationRule(ValidateStorageRootPath),
         new ValidationRule(ValidateLoggingLevel),
         new ValidationRule(ValidateXmlTarget),
@@ -43,20 +39,6 @@ public static class ConfigValidator
         return string.IsNullOrWhiteSpace(config.ConfigVersion)
             ? new ConfigValidationError("CONF_VERSION_REQUIRED", "ConfigVersion", "ConfigVersion is required.")
             : null;
-    }
-
-    private static ConfigValidationError? ValidateTraversalMode(AppConfig config)
-    {
-        return string.Equals(config.Traversal.Mode, TraversalMode, StringComparison.OrdinalIgnoreCase)
-            ? null
-            : new ConfigValidationError("CONF_TRAVERSAL_MODE_INVALID", "Traversal.Mode", "Only DFS_PRE_ORDER is supported.");
-    }
-
-    private static ConfigValidationError? ValidateSiblingOrder(AppConfig config)
-    {
-        return string.Equals(config.Traversal.SiblingOrder, SiblingOrder, StringComparison.OrdinalIgnoreCase)
-            ? null
-            : new ConfigValidationError("CONF_SIBLING_ORDER_INVALID", "Traversal.SiblingOrder", "Only CREATION_ORDER is supported.");
     }
 
     private static ConfigValidationError? ValidateStorageRootPath(AppConfig config)

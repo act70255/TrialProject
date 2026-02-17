@@ -10,3 +10,4 @@ src/**/obj/
 /tests/**/TestResults/
 *.db-shm
 *.db-wal
+/artifacts

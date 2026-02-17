@@ -102,19 +102,15 @@ public class ConfigurationAcceptanceTests
     }
 
     [Fact]
-    public void Should_ReportValidationErrors_ForInvalidVersionAndTraversalSettings()
+    public void Should_ReportValidationError_ForInvalidVersion()
     {
-        AppConfig config = ConfigDefaults.ApplyDefaults(new AppConfig
-        {
-            Traversal = new TraversalConfig { Mode = "BFS", SiblingOrder = "ALPHA" }
-        });
+        AppConfig config = ConfigDefaults.ApplyDefaults(new AppConfig());
         config.ConfigVersion = "";
 
         IReadOnlyList<ConfigValidationError> errors = ConfigValidator.Validate(config);
 
-        Assert.Contains(errors, item => item.ErrorCode == "CONF_VERSION_REQUIRED");
-        Assert.Contains(errors, item => item.ErrorCode == "CONF_TRAVERSAL_MODE_INVALID");
-        Assert.Contains(errors, item => item.ErrorCode == "CONF_SIBLING_ORDER_INVALID");
+        ConfigValidationError error = Assert.Single(errors);
+        Assert.Equal("CONF_VERSION_REQUIRED", error.ErrorCode);
     }
 
     [Fact]

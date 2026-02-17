@@ -51,15 +51,15 @@ public sealed class ConsoleCommandLoop
             }
             catch (InvalidOperationException ex)
             {
-                System.Console.WriteLine($"Error: {ex.Message}");
+                System.Console.WriteLine($"[ERROR] {ex.Message}");
             }
             catch (ArgumentException ex)
             {
-                System.Console.WriteLine($"Error: {ex.Message}");
+                System.Console.WriteLine($"[ERROR] {ex.Message}");
             }
             catch
             {
-                System.Console.WriteLine($"Error: Command execution failed due to an unexpected error. [{OperationErrorCodes.CommandExecutionUnexpected}]");
+                System.Console.WriteLine($"[ERROR] Command execution failed due to an unexpected error. [{OperationErrorCodes.CommandExecutionUnexpected}]");
             }
         }
     }
@@ -69,7 +69,7 @@ public sealed class ConsoleCommandLoop
     /// </summary>
     private static void PrintWelcome()
     {
-        System.Console.WriteLine("CloudFileManager CLI");
-        System.Console.WriteLine("Type 'help' to see commands. Type 'exit' to quit.");
+        System.Console.WriteLine("[INFO] CloudFileManager CLI");
+        System.Console.WriteLine("[INFO] Type 'help' to see commands. Type 'exit' to quit.");
     }
 }

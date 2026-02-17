@@ -67,6 +67,7 @@ public sealed partial class StorageMetadataGateway
             return new OperationResult(false, "File metadata was deleted, but physical cleanup did not complete.", OperationErrorCodes.DeleteFileCleanupFailed);
         }
 
+        InvalidateRootTreeCache();
         return persistenceResult;
     }
 
@@ -127,6 +128,7 @@ public sealed partial class StorageMetadataGateway
             return new OperationResult(false, "File metadata was deleted, but physical cleanup did not complete.", OperationErrorCodes.DeleteFileCleanupFailed);
         }
 
+        InvalidateRootTreeCache();
         return persistenceResult;
     }
 

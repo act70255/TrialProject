@@ -8,8 +8,6 @@ public sealed class AppConfig
 
     public StorageConfig Storage { get; set; } = new();
 
-    public TraversalConfig Traversal { get; set; } = new();
-
     public LoggingConfig Logging { get; set; } = new();
 
     public OutputConfig Output { get; set; } = new();
@@ -26,13 +24,6 @@ public sealed class AppConfig
 public sealed class StorageConfig
 {
     public string StorageRootPath { get; set; } = "./storage";
-}
-
-public sealed class TraversalConfig
-{
-    public string Mode { get; set; } = "DFS_PRE_ORDER";
-
-    public string SiblingOrder { get; set; } = "CREATION_ORDER";
 }
 
 public sealed class LoggingConfig

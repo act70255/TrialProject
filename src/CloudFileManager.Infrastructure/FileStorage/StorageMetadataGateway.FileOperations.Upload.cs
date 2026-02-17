@@ -77,6 +77,7 @@ public sealed partial class StorageMetadataGateway
             return persistenceResult;
         }
 
+        InvalidateRootTreeCache();
         CleanupUploadConflictBackup(conflictContext, request);
         return persistenceResult;
     }
@@ -150,6 +151,7 @@ public sealed partial class StorageMetadataGateway
             return persistenceResult;
         }
 
+        InvalidateRootTreeCache();
         CleanupUploadConflictBackup(conflictContext, request);
         return persistenceResult;
     }

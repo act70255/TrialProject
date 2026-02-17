@@ -28,4 +28,12 @@ public sealed record RenameDirectoryRequest(string DirectoryPath, string NewDire
 
 public sealed record CalculateSizeRequest(string DirectoryPath);
 
-public sealed record SearchByExtensionRequest(string Extension);
+public sealed record SearchByExtensionRequest(string Extension, string? DirectoryPath = null);
+
+public sealed record ExportXmlRequest(string? DirectoryPath = null);
+
+public sealed record ListDirectoryEntriesRequest(string DirectoryPath);
+
+public sealed record CopyFileRequest(string SourceFilePath, string TargetDirectoryPath, string? NewFileName = null);
+
+public sealed record CopyDirectoryRequest(string SourceDirectoryPath, string TargetParentDirectoryPath, string? NewDirectoryName = null);

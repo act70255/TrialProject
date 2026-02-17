@@ -18,5 +18,9 @@ public interface ICloudFileDirectoryCommandService
 
     OperationResult RenameDirectory(RenameDirectoryRequest request);
 
+    OperationResult CopyDirectory(CopyDirectoryRequest request);
+
     Task<OperationResult> RenameDirectoryAsync(RenameDirectoryRequest request, CancellationToken cancellationToken = default);
+
+    Task<OperationResult> CopyDirectoryAsync(CopyDirectoryRequest request, CancellationToken cancellationToken = default);
 }

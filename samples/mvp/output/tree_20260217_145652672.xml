@@ -1,0 +1,17 @@
+﻿<Directory Name="Root">
+  <File Name="Design04.docx" Size="18.975KB" CreatedTime="2026-02-17T13:58:29.5471481+08:00" Type="Word" Detail="PageCount=6" />
+  <Directory Name="doc_0" />
+  <Directory Name="doc_1">
+    <File Name="ShareX_4gVhhR5CHm.png" Size="8.376KB" CreatedTime="2026-02-17T13:58:29.3605878+08:00" Type="Image" Detail="Resolution=606x169" />
+    <File Name="sample.txt" Size="0.01KB" CreatedTime="2026-02-17T13:58:29.3862319+08:00" Type="Text" Detail="Encoding=UTF-8" />
+    <File Name="Design02.docx" Size="18.894KB" CreatedTime="2026-02-17T13:58:29.4550887+08:00" Type="Word" Detail="PageCount=4" />
+    <Directory Name="doc_1_0">
+      <Directory Name="doc_1_0_subfolder">
+        <File Name="nested.txt" Size="0.01KB" CreatedTime="2026-02-17T13:58:28.4705554+08:00" Type="Text" Detail="Encoding=UTF-8" />
+      </Directory>
+    </Directory>
+  </Directory>
+  <Directory Name="doc_2">
+    <File Name="Design03.docx" Size="18.943KB" CreatedTime="2026-02-17T13:58:29.5026102+08:00" Type="Word" Detail="PageCount=5" />
+  </Directory>
+</Directory>

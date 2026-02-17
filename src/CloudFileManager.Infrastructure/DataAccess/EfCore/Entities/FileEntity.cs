@@ -59,4 +59,9 @@ public sealed class FileEntity
     /// 取得或設定 Metadata。
     /// </summary>
     public FileMetadataEntity Metadata { get; set; } = null!;
+
+    /// <summary>
+    /// 取得或設定節點標籤關聯。
+    /// </summary>
+    public List<NodeTagEntity> NodeTags { get; set; } = [];
 }

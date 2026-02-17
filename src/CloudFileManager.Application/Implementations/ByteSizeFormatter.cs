@@ -10,19 +10,11 @@ public static class ByteSizeFormatter
     /// </summary>
     public static string Format(long bytes)
     {
-        const double kilobyte = 1024d;
-        const double megabyte = 1024d * 1024d;
-
-        if (bytes >= megabyte)
+        if (bytes == 0)
         {
-            return $"{bytes / megabyte:0.00} MB";
+            return "0KB";
         }
 
-        if (bytes >= kilobyte)
-        {
-            return $"{bytes / kilobyte:0.00} KB";
-        }
-
-        return $"{bytes} Bytes";
+        return $"{bytes / 1024d:0.###}KB";
     }
 }

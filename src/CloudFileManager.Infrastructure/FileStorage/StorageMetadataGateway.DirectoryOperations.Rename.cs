@@ -61,7 +61,7 @@ public sealed partial class StorageMetadataGateway
         bool rollbackCaseOnlyRename = string.Equals(newDirectoryName, originalName, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(newDirectoryName, originalName, StringComparison.Ordinal);
 
-        return ExecuteSaveWithRollback(
+        OperationResult persistenceResult = ExecuteSaveWithRollback(
             restoreEntityState: () =>
             {
                 directory.Name = originalName;
@@ -74,6 +74,13 @@ public sealed partial class StorageMetadataGateway
             successMessage: "Directory renamed.",
             rollbackFailureMessage: "Database update failed after physical rename. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.RenameDirectoryUnexpected);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     public Task<OperationResult> RenameDirectoryAsync(string directoryPath, string newDirectoryName, CancellationToken cancellationToken = default)
@@ -136,7 +143,7 @@ public sealed partial class StorageMetadataGateway
         bool rollbackCaseOnlyRename = string.Equals(newDirectoryName, originalName, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(newDirectoryName, originalName, StringComparison.Ordinal);
 
-        return await ExecuteSaveWithRollbackAsync(
+        OperationResult persistenceResult = await ExecuteSaveWithRollbackAsync(
             restoreEntityState: () =>
             {
                 directory.Name = originalName;
@@ -150,6 +157,13 @@ public sealed partial class StorageMetadataGateway
             rollbackFailureMessage: "Database update failed after physical rename. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.RenameDirectoryUnexpected,
             cancellationToken: cancellationToken);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     private static OperationResult? ValidatePhysicalDirectory(string path, string role)

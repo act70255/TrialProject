@@ -5,7 +5,14 @@ namespace CloudFileManager.Shared.Common;
 /// </summary>
 public static class OperationErrorCodes
 {
+    public const string ValidationFailed = "CFM_VALIDATION_FAILED";
+    public const string ResourceNotFound = "CFM_RESOURCE_NOT_FOUND";
+    public const string NameConflict = "CFM_NAME_CONFLICT";
+    public const string PolicyViolation = "CFM_POLICY_VIOLATION";
     public const string UnexpectedError = "CFM_UNEXPECTED_ERROR";
+    public const string CopyFileUnexpected = "CFM_COPY_FILE_UNEXPECTED";
+    public const string CopyDirectoryUnexpected = "CFM_COPY_DIRECTORY_UNEXPECTED";
+    public const string CopyDirectoryRollbackFailed = "CFM_COPY_DIRECTORY_ROLLBACK_FAILED";
     public const string UploadIoError = "CFM_UPLOAD_IO_ERROR";
     public const string UploadPermissionDenied = "CFM_UPLOAD_PERMISSION_DENIED";
     public const string UploadInvalidRequest = "CFM_UPLOAD_INVALID_REQUEST";

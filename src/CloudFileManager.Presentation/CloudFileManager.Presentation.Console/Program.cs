@@ -7,7 +7,7 @@ string configFilePath = ConfigPathResolver.ResolveConfigFilePath(Directory.GetCu
 string basePath = ConfigPathResolver.ResolveRuntimeBasePath(configFilePath, Directory.GetCurrentDirectory(), AppContext.BaseDirectory, "TrialProject.sln");
 var config = AppConfigLoader.Load(configFilePath);
 string storageRootPath = StorageBootstrapper.EnsureStorageRoot(config, basePath);
-System.Console.WriteLine($"Storage Root: {storageRootPath}");
+System.Console.WriteLine($"[INFO] Storage Root: {storageRootPath}");
 
 ServiceCollection services = new();
 DependencyRegister.Register(services, config, basePath);

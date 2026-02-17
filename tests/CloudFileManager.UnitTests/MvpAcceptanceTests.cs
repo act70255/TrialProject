@@ -31,7 +31,7 @@ public class MvpAcceptanceTests
         var result = service.CalculateTotalSize(new CalculateSizeRequest("Root"));
 
         Assert.Equal((500 * 1024) + (2 * 1024 * 1024) + 1024 + (200 * 1024) + 500, result.SizeBytes);
-        Assert.Equal("2.69 MB", result.FormattedSize);
+        Assert.Equal("2749.488KB", result.FormattedSize);
     }
 
     [Fact]
@@ -43,6 +43,39 @@ public class MvpAcceptanceTests
 
         Assert.Equal("Root/Project_Docs/Requirement.docx", result.Paths[0]);
         Assert.Equal("Root/Personal_Notes/Archive_2025/Meeting-Archive.docx", result.Paths[1]);
+    }
+
+    [Fact]
+    public void Should_ReturnDirectoryEntries_WithRawAndFormattedSize()
+    {
+        ICloudFileApplicationService service = CreateSeededService();
+
+        DirectoryEntriesResult result = service.GetDirectoryEntries(new ListDirectoryEntriesRequest("Root"));
+
+        Assert.True(result.IsFound);
+        Assert.NotEmpty(result.Entries);
+        Assert.All(result.Entries, entry =>
+        {
+            Assert.True(entry.SizeBytes >= 0);
+            Assert.Equal(ByteSizeFormatter.Format(entry.SizeBytes), entry.FormattedSize);
+        });
+    }
+
+    [Fact]
+    public void Should_KeepSizeSortByRawBytes_AndDisplayFormattedSize()
+    {
+        ICloudFileApplicationService service = CreateSeededService();
+
+        DirectoryEntriesResult result = service.GetDirectoryEntries(new ListDirectoryEntriesRequest("Root"));
+        List<DirectoryEntryResult> sorted = result.Entries
+            .OrderByDescending(item => item.SizeBytes)
+            .ThenBy(item => item.SiblingOrder)
+            .ToList();
+
+        Assert.True(sorted.Count >= 2);
+        Assert.True(sorted[0].SizeBytes >= sorted[1].SizeBytes);
+        Assert.Equal(ByteSizeFormatter.Format(sorted[0].SizeBytes), sorted[0].FormattedSize);
+        Assert.Equal(ByteSizeFormatter.Format(sorted[1].SizeBytes), sorted[1].FormattedSize);
     }
 
     [Fact]

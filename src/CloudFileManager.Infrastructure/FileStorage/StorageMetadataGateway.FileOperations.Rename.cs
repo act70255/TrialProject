@@ -55,7 +55,7 @@ public sealed partial class StorageMetadataGateway
         bool rollbackCaseOnlyRename = string.Equals(newFileName, originalName, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(newFileName, originalName, StringComparison.Ordinal);
 
-        return ExecuteSaveWithRollback(
+        OperationResult persistenceResult = ExecuteSaveWithRollback(
             restoreEntityState: () =>
             {
                 sourceLookup.File.Name = originalName;
@@ -68,6 +68,13 @@ public sealed partial class StorageMetadataGateway
             successMessage: "File renamed and persisted.",
             rollbackFailureMessage: "Database update failed after physical rename. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.RenameFileUnexpected);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     public Task<OperationResult> RenameFileAsync(string filePath, string newFileName, CancellationToken cancellationToken = default)
@@ -125,7 +132,7 @@ public sealed partial class StorageMetadataGateway
         bool rollbackCaseOnlyRename = string.Equals(newFileName, originalName, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(newFileName, originalName, StringComparison.Ordinal);
 
-        return await ExecuteSaveWithRollbackAsync(
+        OperationResult persistenceResult = await ExecuteSaveWithRollbackAsync(
             restoreEntityState: () =>
             {
                 sourceLookup.File.Name = originalName;
@@ -139,5 +146,12 @@ public sealed partial class StorageMetadataGateway
             rollbackFailureMessage: "Database update failed after physical rename. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.RenameFileUnexpected,
             cancellationToken: cancellationToken);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 }

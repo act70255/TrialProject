@@ -176,12 +176,37 @@ public sealed class CloudFileApplicationService : ICloudFileApplicationService
         return _readModelService.SearchByExtension(request);
     }
 
+    public DirectoryEntriesResult GetDirectoryEntries(ListDirectoryEntriesRequest request)
+    {
+        return _readModelService.GetDirectoryEntries(request);
+    }
+
     /// <summary>
     /// 匯出目錄樹 XML。
     /// </summary>
-    public XmlExportResult ExportXml()
+    public XmlExportResult ExportXml(ExportXmlRequest? request = null)
     {
-        return _readModelService.ExportXml();
+        return _readModelService.ExportXml(request);
+    }
+
+    public OperationResult CopyFile(CopyFileRequest request)
+    {
+        return _fileCommandService.CopyFile(request);
+    }
+
+    public Task<OperationResult> CopyFileAsync(CopyFileRequest request, CancellationToken cancellationToken = default)
+    {
+        return _fileCommandService.CopyFileAsync(request, cancellationToken);
+    }
+
+    public OperationResult CopyDirectory(CopyDirectoryRequest request)
+    {
+        return _directoryCommandService.CopyDirectory(request);
+    }
+
+    public Task<OperationResult> CopyDirectoryAsync(CopyDirectoryRequest request, CancellationToken cancellationToken = default)
+    {
+        return _directoryCommandService.CopyDirectoryAsync(request, cancellationToken);
     }
 
     /// <summary>

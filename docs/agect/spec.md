@@ -1,8 +1,8 @@
 # 雲端檔案管理系統規格書（MVP + Phase 2 規劃）
 
 ## 1. 文件定位
-- 本文件由 `docs/requirement.md` 轉換而來，作為實作與驗收用的規格基準（Specification）。
-- 適用範圍：本文件主體為 MVP（不含 Bonus）；另包含 Phase 2（MMP）可用性強化規劃。
+- 本文件由 `docs/reference/requirement.md` 轉換而來，作為實作與驗收用的規格基準（Specification）。
+- 適用範圍：本文件主體採 Full Scope，涵蓋 MVP 與 Bonus（Phase 2 / MMP）並納入本次驗收。
 - 術語對照：本文使用 `DataAccess` 表示資料存取層；在目前程式碼專案中對應 `CloudFileManager.Infrastructure`（即 DataAccess 的實作專案）。
 - 契約對照：跨層資料契約統一放置於 `CloudFileManager.Contracts` 扁平命名空間，不再區分 `Requests` / `Responses` 子命名空間。
 
@@ -26,11 +26,11 @@
 - SP-DEL-005：設計與實作概念說明（README/文件）。
 - SP-DEL-006：GitHub Repository 連結（含可檢視之完整程式碼與文件）。
 
-### 3.1 交付驗收細則（對齊 `docs/mvp_ac.md` C8.1~C8.6）
+### 3.1 交付驗收細則（對齊 `delivery/AcceptanceCriteria.md` 的 `D1~D5`）
 - SP-DEL-007：UML 需可明確辨識 `Inheritance`、`Association`，以及 `Aggregation` 或 `Composition`（至少其一）。
 - SP-DEL-008：ER Model 需可檢核主鍵/外鍵、目錄遞迴關係、檔案共通屬性與型別專屬屬性映射。
-- SP-DEL-009：C# 專案需可建置且可啟動執行 MVP 核心流程（至少覆蓋 F1~F5）。
-- SP-DEL-010：驗收證據需逐項對應 F1~F5，至少包含執行命令、輸出片段與資料集版本資訊。
+- SP-DEL-009：C# 專案需可建置且可啟動執行核心流程（至少覆蓋 `C1.1~C5`，含 Bonus 對應 `C4.1~C4.4`）。
+- SP-DEL-010：驗收證據需逐項對應 `C1.1~C5` 與 `C4.1~C4.4`，至少包含執行命令、輸出片段與資料集版本資訊。
 - SP-DEL-011：README 至少需包含環境需求、建置步驟、執行方式、示範輸出、設計摘要與文件索引。
 - SP-DEL-012：Repository 連結需可由評分者存取，且可找到需求、規格、模型、架構、程式碼與驗收紀錄。
 
@@ -73,20 +73,20 @@
 - SP-FUNC-002：系統需於 Console、WebApi、Website 輸出完整目錄樹與檔案細節（頁數/解析度/編碼/大小KB/建立時間）。
 - SP-FUNC-019：目錄樹輸出需能明確辨識父子層級（例如縮排、樹枝前綴或等價表示法）。
 - SP-FUNC-024：驗收資料集需可建立至少 3 層目錄深度（含 Root 與巢狀子目錄）以驗證遞迴結構。
-- SP-FUNC-025：同層節點建立順序需可被重現，並可由 DFS 與 Traverse Log 驗證一致性。
+- SP-FUNC-025：同層節點建立順序需可被重現，並可由搜尋結果與 Traverse Log 驗證一致性。
 
 ### 6.2 F2 遞迴計算總容量
 - SP-FUNC-003：系統需提供計算任一目錄總容量的方法，計算範圍含所有子目錄與檔案。
 - SP-FUNC-004：容量計算內部單位統一為 Bytes。
-- SP-FUNC-005：容量顯示可格式化為 KB/MB，換算規則固定為 `1KB = 1024B`、`1MB = 1024KB`。
-- SP-FUNC-020：空目錄總容量計算結果需為 `0B`。
+- SP-FUNC-005：容量顯示與驗收固定為 `KB`，換算規則固定為 `1KB = 1024B`、`1MB = 1024KB`。
+- SP-FUNC-020：空目錄總容量計算結果需為 `0KB`。
 - SP-FUNC-026：若採題目示例資料集驗收，需於驗收文件提供 Root 與至少 1 個中介層目錄之人工換算與程式輸出比對證據。
 
 ### 6.3 F3 副檔名搜尋
 - SP-FUNC-006：系統需支援輸入副檔名（例：`.docx`）進行搜尋。
 - SP-FUNC-007：搜尋結果需回傳完整路徑。
-- SP-FUNC-008：遍歷規則採 DFS（Pre-order），同層節點依建立順序走訪。
-- SP-FUNC-009：搜尋結果順序依遍歷發現順序回傳，不進行額外排序。
+- SP-FUNC-008：搜尋遍歷策略不綁定特定演算法，但需在同一版本下保持一致並可由輸出觀察。
+- SP-FUNC-009：搜尋結果順序需可重現，且不得因隱性排序造成不一致。
 - SP-FUNC-021：路徑輸出格式需一致（是否包含 `Root`、路徑分隔符規則、大小寫策略需文件化且固定）。
 - SP-FUNC-027：搜尋無命中副檔名時需回傳空集合，不得拋出未處理錯誤。
 
@@ -99,8 +99,8 @@
 
 ### 6.5 F5 功能進度追蹤（Process Logging）
 - SP-FUNC-012：執行「計算大小」與「搜尋」時，需輸出 Traverse Log。
-- SP-FUNC-029：WebApi 與 Website 需可檢視對應走訪資訊（例如 API 回傳 Trace/Log 或可查詢執行紀錄）。
-- SP-FUNC-013：Traverse Log 走訪規則需與搜尋一致（DFS Pre-order + 同層建立順序）。
+- SP-FUNC-029：若 WebApi 或 Website 提供走訪資訊，需與 Console Traverse Log 保持語意一致。
+- SP-FUNC-013：Traverse Log 走訪規則需與搜尋一致，且可追溯當前訪問節點順序。
 
 ### 6.6 F6 Website 功能對齊 Console
 - SP-FUNC-014：`Website` 需提供可操作 UI，涵蓋 `Console` 既有管理能力：建立/刪除/搬移/改名（檔案與資料夾）、上傳、搜尋、容量查詢、XML、Feature Flags。
@@ -108,6 +108,30 @@
 - SP-FUNC-016：若現行 `WebApi` 契約無法支持瀏覽器情境（例如檔案下載回傳型態），需調整 `WebApi` 契約以支援 `Website`，且不得破壞既有核心業務規則。
 - SP-FUNC-017：`Website` 需提供最小可用回饋（成功/失敗訊息、必要輸入驗證），避免僅顯示唯讀結果。
 - SP-FUNC-018：`Website` 功能覆蓋範圍需在文件中明確列示，並可由驗收案例逐項重現。
+
+### 6.7 F7 題目進階功能（Bonus，納入本次驗收）
+- SP-FUNC-030：系統需支援排序功能，可依 `名稱`、`大小`、`副檔名` 進行 `升冪/降冪`。
+- SP-FUNC-031：排序採全域環境設定（不區分目錄 scope）；同鍵值時需維持 Stable Sort，並以建立順序作為次要順序。
+- SP-FUNC-032：系統需支援編輯功能，至少包含節點 `刪除` 與 `複製/貼上`，且操作後需正確反映於目錄樹、容量與搜尋結果。
+- SP-FUNC-033：目錄複製需為深拷貝（含子節點與屬性）；發生名稱衝突時需依既定策略處理（預設 `Reject`，不得靜默覆蓋）。
+- SP-FUNC-034：系統需支援標籤功能，標籤集合固定為 `Urgent（紅色）`、`Work（藍色）`、`Personal（綠色）`，且支援多重標籤。
+- SP-FUNC-035：本次範圍不含標籤管理（不提供自訂/新增/刪除標籤定義）。
+- SP-DATA-018：資料模型需預留 `tags` 與 `node_tags` 結構，支援目錄/檔案節點標籤關聯與後續擴充（可先完成 Schema，不強制同階段完成功能）。
+- SP-FUNC-036：系統需支援狀態管理 `Undo/Redo`，本版至少覆蓋排序設定與標籤新增/移除操作。
+- SP-FUNC-037：Undo/Redo 採單一工作階段雙堆疊模型；執行新操作後需清空 Redo 堆疊。
+
+### 6.8 Bonus 決策表（Decision Table）
+
+| 決策 ID | 功能 | 情境/問題 | 決策 | 預設值/限制 | 驗收重點 | 規格對應 |
+| --- | --- | --- | --- | --- | --- | --- |
+| DT-BONUS-001 | 排序 | 排序要作用在整棵樹還是單一目錄？ | 作用於指定目錄以下的全域節點（含子孫） | 需涵蓋遞迴子節點 | 結果含子孫節點且順序正確 | `SP-FUNC-030`、`SP-FUNC-031` |
+| DT-BONUS-002 | 排序 | 同鍵值時如何決定先後？ | 採 Stable Sort | 次要順序為建立順序 | 重複執行順序一致 | `SP-FUNC-031` |
+| DT-BONUS-003 | 編輯 | 複製目錄是淺拷貝還是深拷貝？ | 採深拷貝 | 來源與複本不可共享可變狀態 | 修改複本不影響來源 | `SP-FUNC-032`、`SP-FUNC-033` |
+| DT-BONUS-004 | 編輯 | 貼上名稱衝突如何處理？ | 使用衝突策略處理，不可靜默覆蓋 | 預設 `Reject` | 發生衝突時回傳可判讀結果 | `SP-FUNC-033` |
+| DT-BONUS-005 | 標籤 | 標籤是固定集合還是可管理？ | 固定集合 | 僅 `Urgent/Work/Personal` | 三標籤可正確套用/查詢/顯示 | `SP-FUNC-034` |
+| DT-BONUS-006 | 標籤 | 是否支援自訂/新增/刪除標籤？ | 本次不支援 | 不提供標籤管理 API/UI | 超出集合輸入需被拒絕或回報錯誤 | `SP-FUNC-035` |
+| DT-BONUS-007 | Undo/Redo | 新操作發生後，Redo 是否保留？ | 不保留舊分支 | 新操作後清空 Redo 堆疊 | 舊分支不可再重做 | `SP-FUNC-037` |
+| DT-BONUS-008 | Undo/Redo | 最低覆蓋哪些操作？ | 至少覆蓋排序設定與標籤新增/移除 | 單一 Session 雙堆疊模型 | 多步操作可回放且狀態一致 | `SP-FUNC-036`、`SP-FUNC-037` |
 
 ## 7. 非功能規格（Non-Functional Specification）
 - SP-NFR-001：系統需同時提供 Console、WebApi、Website 三種操作/驗證介面。
@@ -156,7 +180,6 @@ flowchart LR
 - SP-CONF-001：實際檔案儲存根路徑需由設定檔提供（例如 `StorageRootPath`），不得硬編碼於程式。
 - SP-CONF-002：`StorageRootPath` 允許絕對路徑或相對路徑；相對路徑以應用程式啟動目錄為基準解析。
 - SP-CONF-003：啟動時若 `StorageRootPath` 不存在，系統需自動建立目錄並記錄初始化訊息。
-- SP-CONF-004：遍歷與搜尋相關規則可由設定檔宣告（預設為 `DFS Pre-order` 與 `CreationOrder`），但 Mvp 預設行為不得改變既定驗收結果。
 - SP-CONF-005：Console Logging 等級需可設定（建議：`Info`、`Debug`），以控制 Traverse Log 詳細度。
 - SP-CONF-006：XML 輸出目標需可設定（輸出至 Console 或檔案路徑），預設輸出至 Console。
 - SP-CONF-007：副檔名白名單需依檔案類型分組設定，不可僅以單一清單表示。
@@ -178,7 +201,7 @@ flowchart LR
 - SP-CONF-023：`Website` 設定僅允許站台層參數（如 `WebApiBaseUrl`、站台自身 `Logging`/`AllowedHosts`），不得承載後端業務設定。
 - SP-CONF-024：`Website` 不得持有資料庫連線字串、`StorageRootPath`、`Management.*`、`FeatureFlags.*`、`AllowedExtensions.*`、`Output.*`。
 - SP-CONF-025：`Website` 與 `WebApi` 可有同名設定鍵（例如 `Logging`），但語意需各自獨立且不可互為真實來源。
-- SP-CONF-026：設定分層規範需文件化並可被檢查（參照 `docs/config-boundary-checklist.md`）。
+- SP-CONF-026：設定分層規範需文件化並可被檢查（參照 `docs/agect/architecture.md` 之設定責任邊界章節）。
 
 ## 9. 擴充性與維護性規格
 - SP-EXT-001：新增檔案類型時，需透過擴充契約（介面或抽象基底）實作，不得修改既有核心流程分支。
@@ -203,10 +226,6 @@ flowchart LR
       "SqlServer": "Server=localhost;Database=CloudFileManager;User Id=sa;Password=Your_password123;TrustServerCertificate=true"
     }
   },
-  "Traversal": {
-    "Mode": "DFS_PRE_ORDER",
-    "SiblingOrder": "CREATION_ORDER"
-  },
   "Logging": {
     "Level": "Info",
     "EnableTraverseLog": true
@@ -229,7 +248,7 @@ flowchart LR
 ```
 
 ## 10. 管理操作規格（Phase 2 / MMP）
-> 本章為可用性強化範圍，不納入本次 MVP 基線驗收（不影響 AC-001~AC-005、AC-024~AC-029）。
+> 本章為可用性強化範圍，採 Full Scope 時需納入驗收；其中題目 Bonus 以 `SP-FUNC-030~SP-FUNC-037` 為優先必驗項。
 
 ### 10.1 檔案管理操作
 - SP-MGMT-001：系統需支援檔案上傳（Upload）至指定目錄。
@@ -255,8 +274,8 @@ flowchart LR
 ## 11. 範圍說明（Scope Statement）
 - 本規格目前不設 Out of Scope 清單。
 - 功能以 `MVP` 與 `Phase 2 / MMP` 分級管理：
-  - `MVP`：作為本次最低可交付與核心驗收基線。
-  - `Phase 2 / MMP`：屬可用性強化，納入正式功能路線圖與後續驗收。
+  - `MVP`：作為本次核心驗收基線。
+  - `Phase 2 / MMP`：屬可用性強化；本次採 Full Scope，與 MVP 一併納入必驗。
 
 ## 12. 驗收對應矩陣
 - AC-001：`SP-FUNC-001` + `SP-FUNC-002` + `SP-FUNC-019` 通過，代表可正確建立與呈現目錄樹，且層級可判讀。
@@ -266,9 +285,9 @@ flowchart LR
 - AC-005：`SP-FUNC-012` + `SP-FUNC-013` + `SP-FUNC-029` 通過，代表三種介面皆可驗證演算法遍歷過程。
 
 - AC-024：`SP-FUNC-024` + `SP-FUNC-025` 通過，代表初始化資料集深度與建立順序可支撐遞迴/遍歷驗證（對齊 `C1`）。
-- AC-025：`SP-FUNC-026` 通過，代表容量驗收具可重現人工換算證據（對齊 `C3`）。
-- AC-026：`SP-FUNC-027` 通過，代表無命中搜尋行為符合預期且具穩定性（對齊 `C4`）。
-- AC-027：`SP-FUNC-028` 通過，代表 XML 輸出具結構合法性（對齊 `C5`）。
+- AC-025：`SP-FUNC-026` 通過，代表容量驗收具可重現人工換算證據（對齊 `C2.1`）。
+- AC-026：`SP-FUNC-027` 通過，代表無命中搜尋行為符合預期且具穩定性（對齊 `C2.2`）。
+- AC-027：`SP-FUNC-028` 通過，代表 XML 輸出具結構合法性（對齊 `C2.3`）。
 
 - AC-006：`SP-CONF-001`~`SP-CONF-003` 通過，代表儲存路徑配置可於不同環境穩定運作。
 - AC-007：`SP-CONF-005` + `SP-CONF-006` 通過，代表執行輸出行為可依設定切換。
@@ -289,21 +308,26 @@ flowchart LR
 - AC-022：`SP-CONF-022`~`SP-CONF-026` 通過，代表 `WebApi/Website` 設定分層責任清楚且無語意衝突。
 - AC-023：`SP-FUNC-014`~`SP-FUNC-018` + `SP-NFR-018` 通過，代表 `Website` 已達到與 `Console` 一致的可操作能力與可驗證行為。
 
-- AC-028：`SP-DEL-007`~`SP-DEL-012` 通過，代表文件與交付物細節完整（對齊 `C8.1~C8.6`）。
+- AC-028：`SP-DEL-007`~`SP-DEL-012` 通過，代表文件與交付物細節完整（對齊 `D1~D5`）。
 
-- AC-029：`AC-001`~`AC-005` + `AC-024`~`AC-028` 通過，代表 `docs/spec.md` 已完整覆蓋 `docs/mvp_ac.md` 之 MVP 驗收要求。
+- AC-029：`AC-001`~`AC-005` + `AC-024`~`AC-028` 通過，代表規格已完整覆蓋 `delivery/AcceptanceCriteria.md` 之實作功能 `C1.1~C5` 與文件交付 `D1~D5`。
+- AC-030：`SP-FUNC-030` + `SP-FUNC-031` 通過，代表排序功能符合題目 Bonus `4-1`（對齊 `C4.1`）。
+- AC-031：`SP-FUNC-032` + `SP-FUNC-033` 通過，代表編輯功能符合題目 Bonus `4-2`（對齊 `C4.2`）。
+- AC-032：`SP-FUNC-034` + `SP-FUNC-035` 通過，代表標籤功能符合題目 Bonus `4-3`（對齊 `C4.3`）。
+- AC-033：`SP-FUNC-036` + `SP-FUNC-037` 通過，代表 Undo/Redo 功能符合題目 Bonus `4-4`（對齊 `C4.4`）。
+- AC-034：`AC-029` + `AC-030` + `AC-031` + `AC-032` + `AC-033` 通過，代表規格已完整覆蓋 Full Scope（MVP + Bonus）驗收要求。
 
 ## 13. 文件關聯
-- `docs/requirement.md`：需求來源。
-- `docs/spec.md`：本規格書（實作與驗收依據）。
-- `docs/domain-model.md`：UML 與類別設計。
-- `docs/er-model.md`：ER 與資料欄位設計（本版已定案）。
-- `docs/architecture.md`：分層架構與技術決策。
-- `docs/config-boundary-checklist.md`：`WebApi/Website` 設定分層檢查清單。
+- `docs/reference/requirement.md`：需求來源。
+- `docs/agect/spec.md`：本規格書（實作與驗收依據）。
+- `delivery/UMLClassDirgram.md`：UML 與類別設計（交付版）。
+- `delivery/ERModel.md`：ER 與資料欄位設計（交付版）。
+- `docs/agect/architecture.md`：分層架構與技術決策。
+- `docs/agect/architecture.md`：設定責任邊界與分層原則。
 - `README.md`：執行說明與驗收結果（後續）。
 
 ## 14. 部署與交付規格（Docker / Deployment）
-> 本章定義容器化部署基線，作為 `docs/task-deploy.md` 的規格對應；預設先以本機與測試環境可重現部署為目標。
+> 本章定義容器化部署基線，作為部署規格對應；預設先以本機與測試環境可重現部署為目標。
 
 ### 14.1 範圍與原則
 - SP-DEP-001：部署範圍以 `WebApi + Website` 為部署主體（屬交付強化範圍，非 MVP 基線必要條件）。

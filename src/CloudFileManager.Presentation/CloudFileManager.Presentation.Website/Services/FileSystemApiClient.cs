@@ -141,7 +141,7 @@ public sealed class FileSystemApiClient
     {
         string url = $"api/filesystem/size?path={Uri.EscapeDataString(path)}";
         SizeCalculationResultDto? result = await _httpClient.GetFromJsonAsync<SizeCalculationResultDto>(url, cancellationToken);
-        return result ?? new SizeCalculationResultDto(false, 0, "0 Bytes", []);
+        return result ?? new SizeCalculationResultDto(false, 0, "0KB", []);
     }
 
     /// <summary>

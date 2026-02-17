@@ -62,7 +62,7 @@ public sealed partial class StorageMetadataGateway
         source.RelativePath = ToStoredPath(destinationPath);
         StorageDirectoryMutations.UpdateDescendantPhysicalPaths(_dbContext, source.Id, source.RelativePath);
 
-        return ExecuteSaveWithRollback(
+        OperationResult persistenceResult = ExecuteSaveWithRollback(
             restoreEntityState: () =>
             {
                 source.ParentId = originalParentId;
@@ -75,6 +75,13 @@ public sealed partial class StorageMetadataGateway
             successMessage: "Directory moved.",
             rollbackFailureMessage: "Database update failed after physical move. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.MoveDirectoryUnexpected);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 
     public Task<OperationResult> MoveDirectoryAsync(string sourceDirectoryPath, string targetParentDirectoryPath, CancellationToken cancellationToken = default)
@@ -138,7 +145,7 @@ public sealed partial class StorageMetadataGateway
         source.RelativePath = ToStoredPath(destinationPath);
         StorageDirectoryMutations.UpdateDescendantPhysicalPaths(_dbContext, source.Id, source.RelativePath);
 
-        return await ExecuteSaveWithRollbackAsync(
+        OperationResult persistenceResult = await ExecuteSaveWithRollbackAsync(
             restoreEntityState: () =>
             {
                 source.ParentId = originalParentId;
@@ -152,5 +159,12 @@ public sealed partial class StorageMetadataGateway
             rollbackFailureMessage: "Database update failed after physical move. The operation was rolled back.",
             rollbackFailureErrorCode: OperationErrorCodes.MoveDirectoryUnexpected,
             cancellationToken: cancellationToken);
+
+        if (persistenceResult.Success)
+        {
+            InvalidateRootTreeCache();
+        }
+
+        return persistenceResult;
     }
 }

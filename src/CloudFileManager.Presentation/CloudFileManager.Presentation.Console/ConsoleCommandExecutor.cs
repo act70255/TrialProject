@@ -41,7 +41,7 @@ public sealed partial class ConsoleCommandExecutor : IConsoleCommandExecutor
             return handler(command.Arguments);
         }
 
-        System.Console.WriteLine($"Unknown command: {command.Name}");
+        PrintError($"Unknown command: {command.Name}");
         ConsoleHelpPrinter.Print();
         return true;
     }
@@ -66,15 +66,17 @@ public sealed partial class ConsoleCommandExecutor : IConsoleCommandExecutor
                 return true;
             },
             ["ls"] = args => ExecuteAndContinue(HandleList, args),
+            ["lsr"] = args => ExecuteAndContinue(HandleListRecursive, args),
             ["cd"] = args => ExecuteAndContinue(HandleChangeDirectory, args),
-            ["pwd"] = _ =>
-            {
-                System.Console.WriteLine(CurrentDirectoryPath);
-                return true;
-            },
             ["size"] = args => ExecuteAndContinue(HandleSize, args),
             ["search"] = args => ExecuteAndContinue(HandleSearch, args),
+            ["sort"] = args => ExecuteAndContinue(HandleSort, args),
             ["mkdir"] = args => ExecuteAndContinue(HandleCreateDirectory, args),
+            ["copy"] = args => ExecuteAndContinue(HandleCopy, args),
+            ["paste"] = args => ExecuteAndContinue(HandlePaste, args),
+            ["tag"] = args => ExecuteAndContinue(HandleTag, args),
+            ["undo"] = _ => ExecuteAndContinue(_ => HandleUndo(), []),
+            ["redo"] = _ => ExecuteAndContinue(_ => HandleRedo(), []),
             ["upload"] = args => ExecuteAndContinue(HandleUpload, args),
             ["move-file"] = args => ExecuteAndContinue(HandleMoveFile, args),
             ["rename-file"] = args => ExecuteAndContinue(HandleRenameFile, args),
@@ -97,7 +99,7 @@ public sealed partial class ConsoleCommandExecutor : IConsoleCommandExecutor
 
     private static bool Exit()
     {
-        System.Console.WriteLine("Bye.");
+        PrintInfo("Bye.");
         return false;
     }
 
@@ -113,6 +115,31 @@ public sealed partial class ConsoleCommandExecutor : IConsoleCommandExecutor
 
     private static void PrintResult(bool success, string message)
     {
-        System.Console.WriteLine(success ? $"OK: {message}" : $"FAIL: {message}");
+        System.Console.WriteLine(success ? $"[RESULT] OK: {message}" : $"[RESULT] FAIL: {message}");
+    }
+
+    private static void PrintInfo(string message)
+    {
+        System.Console.WriteLine($"[INFO] {message}");
+    }
+
+    private static void PrintError(string message)
+    {
+        System.Console.WriteLine($"[ERROR] {message}");
+    }
+
+    private static void PrintUsage(string usage)
+    {
+        System.Console.WriteLine($"[USAGE] {usage}");
+    }
+
+    private static void PrintSectionHeader(string title)
+    {
+        System.Console.WriteLine($"<<{title}>>");
+    }
+
+    private static void PrintSectionFooter(string title)
+    {
+        System.Console.WriteLine("----------");
     }
 }

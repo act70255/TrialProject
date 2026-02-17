@@ -10,7 +10,9 @@ public interface ICloudFileReadModelService
 
     SearchResult SearchByExtension(SearchByExtensionRequest request);
 
-    XmlExportResult ExportXml();
+    DirectoryEntriesResult GetDirectoryEntries(ListDirectoryEntriesRequest request);
+
+    XmlExportResult ExportXml(ExportXmlRequest? request = null);
 
     FeatureFlagsResult GetFeatureFlags();
 }

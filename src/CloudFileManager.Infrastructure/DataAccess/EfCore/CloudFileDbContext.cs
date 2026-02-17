@@ -32,6 +32,16 @@ public sealed class CloudFileDbContext : DbContext
     public DbSet<FileMetadataEntity> FileMetadata => Set<FileMetadataEntity>();
 
     /// <summary>
+    /// 標籤主檔集合。
+    /// </summary>
+    public DbSet<TagEntity> Tags => Set<TagEntity>();
+
+    /// <summary>
+    /// 節點標籤關聯集合。
+    /// </summary>
+    public DbSet<NodeTagEntity> NodeTags => Set<NodeTagEntity>();
+
+    /// <summary>
     /// 套用實體映射設定。
     /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)

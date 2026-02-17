@@ -29,3 +29,14 @@ public sealed record SearchResult(IReadOnlyList<string> Paths, IReadOnlyList<str
 public sealed record XmlExportResult(string XmlContent, string? OutputPath);
 
 public sealed record FeatureFlagsResult(IReadOnlyDictionary<string, bool> Flags);
+
+public sealed record DirectoryEntriesResult(bool IsFound, IReadOnlyList<DirectoryEntryResult> Entries);
+
+public sealed record DirectoryEntryResult(
+    string Name,
+    bool IsDirectory,
+    string FullPath,
+    long SizeBytes,
+    string FormattedSize,
+    string Extension,
+    int SiblingOrder);

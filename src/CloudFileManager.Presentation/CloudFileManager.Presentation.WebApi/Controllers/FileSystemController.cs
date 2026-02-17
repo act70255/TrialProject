@@ -1,6 +1,7 @@
 using CloudFileManager.Application.Interfaces;
 using CloudFileManager.Application.Models;
 using CloudFileManager.Presentation.WebApi.Model;
+using CloudFileManager.Shared.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -94,12 +95,45 @@ public sealed partial class FileSystemController : ControllerBase
             null);
 
         OperationApiResponse response = result.ToApi();
-        return response.Success ? Ok(response) : BadRequest(response);
+        if (response.Success)
+        {
+            return Ok(response);
+        }
+
+        int statusCode = GetStatusCode(result);
+        return StatusCode(statusCode, response);
     }
 
-    private BadRequestObjectResult BadOperation(string message, string? errorCode = null)
+    private ObjectResult BadOperation(string message, string? errorCode = null)
     {
-        return BadRequest(new OperationApiResponse(false, message, errorCode));
+        int statusCode = GetStatusCode(new OperationResult(false, message, errorCode));
+        return StatusCode(statusCode, new OperationApiResponse(false, message, errorCode));
+    }
+
+    private static int GetStatusCode(OperationResult result)
+    {
+        return result.ErrorCode switch
+        {
+            OperationErrorCodes.ResourceNotFound => StatusCodes.Status404NotFound,
+            OperationErrorCodes.NameConflict => StatusCodes.Status409Conflict,
+            OperationErrorCodes.ValidationFailed or OperationErrorCodes.UploadInvalidRequest => StatusCodes.Status400BadRequest,
+            OperationErrorCodes.PolicyViolation => StatusCodes.Status422UnprocessableEntity,
+            OperationErrorCodes.UploadPermissionDenied => StatusCodes.Status403Forbidden,
+            OperationErrorCodes.PersistenceRollbackFailed or
+            OperationErrorCodes.CopyDirectoryRollbackFailed or
+            OperationErrorCodes.UnexpectedError or
+            OperationErrorCodes.CopyFileUnexpected or
+            OperationErrorCodes.CopyDirectoryUnexpected or
+            OperationErrorCodes.UploadMetadataSaveFailed or
+            OperationErrorCodes.DeleteFileUnexpected or
+            OperationErrorCodes.MoveFileUnexpected or
+            OperationErrorCodes.RenameFileUnexpected or
+            OperationErrorCodes.MoveDirectoryUnexpected or
+            OperationErrorCodes.RenameDirectoryUnexpected or
+            OperationErrorCodes.CreateDirectoryUnexpected or
+            OperationErrorCodes.DeleteDirectoryUnexpected => StatusCodes.Status500InternalServerError,
+            _ => StatusCodes.Status500InternalServerError
+        };
     }
 
     private static bool IsMissingUploadFile(UploadFileFormApiRequest request)
@@ -117,6 +151,11 @@ public sealed partial class FileSystemController : ControllerBase
         if (!result.Success || result.Content is null)
         {
             LogFileContentDownloadFailedMessage(_logger, HttpContext.Request.Path, result.Message, null);
+            if (result.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(new OperationApiResponse(false, result.Message, OperationErrorCodes.ResourceNotFound));
+            }
+
             return BadOperation(result.Message);
         }
 

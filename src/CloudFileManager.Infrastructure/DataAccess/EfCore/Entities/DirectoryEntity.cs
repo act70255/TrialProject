@@ -49,4 +49,9 @@ public sealed class DirectoryEntity
     /// 取得或設定 檔案s。
     /// </summary>
     public List<FileEntity> Files { get; set; } = new();
+
+    /// <summary>
+    /// 取得或設定節點標籤關聯。
+    /// </summary>
+    public List<NodeTagEntity> NodeTags { get; set; } = [];
 }

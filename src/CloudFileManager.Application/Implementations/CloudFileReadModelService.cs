@@ -43,7 +43,7 @@ public sealed class CloudFileReadModelService : ICloudFileReadModelService
         CloudDirectory? directory = CloudFileTreeLookup.FindDirectory(_root, request.DirectoryPath);
         if (directory is null)
         {
-            return new SizeCalculationResult(false, 0, "0 Bytes", ["Directory not found."]);
+            return new SizeCalculationResult(false, 0, ByteSizeFormatter.Format(0), ["Directory not found."]);
         }
 
         List<string> traverseLog = new();
@@ -63,10 +63,17 @@ public sealed class CloudFileReadModelService : ICloudFileReadModelService
     public SearchResult SearchByExtension(SearchByExtensionRequest request)
     {
         string extension = ConfigDefaults.NormalizeExtension(request.Extension);
+        string directoryPath = string.IsNullOrWhiteSpace(request.DirectoryPath) ? "Root" : request.DirectoryPath;
+        CloudDirectory? directory = CloudFileTreeLookup.FindDirectory(_root, directoryPath);
+        if (directory is null)
+        {
+            return new SearchResult([], ["Directory not found."]);
+        }
+
         List<string> paths = new();
         List<string> log = new();
 
-        SearchInDirectory(_root, "Root", extension, paths, log);
+        SearchInDirectory(directory, directoryPath.Trim('/'), extension, paths, log);
 
         if (!_config.Logging.EnableTraverseLog)
         {
@@ -76,12 +83,72 @@ public sealed class CloudFileReadModelService : ICloudFileReadModelService
         return new SearchResult(paths, log);
     }
 
+    public DirectoryEntriesResult GetDirectoryEntries(ListDirectoryEntriesRequest request)
+    {
+        CloudDirectory? directory = CloudFileTreeLookup.FindDirectory(_root, request.DirectoryPath);
+        if (directory is null)
+        {
+            return new DirectoryEntriesResult(false, []);
+        }
+
+        List<DirectoryEntryResult> entries = [];
+        int order = 0;
+        AppendDirectoryEntriesRecursively(directory, request.DirectoryPath.TrimEnd('/'), entries, ref order);
+
+        return new DirectoryEntriesResult(true, entries);
+    }
+
+    private static void AppendDirectoryEntriesRecursively(
+        CloudDirectory directory,
+        string directoryPath,
+        ICollection<DirectoryEntryResult> entries,
+        ref int order)
+    {
+        foreach (CloudDirectory childDirectory in directory.Directories)
+        {
+            order++;
+            string childPath = $"{directoryPath}/{childDirectory.Name}";
+            long sizeBytes = childDirectory.CalculateTotalBytes();
+            entries.Add(new DirectoryEntryResult(
+                childDirectory.Name,
+                IsDirectory: true,
+                FullPath: childPath,
+                SizeBytes: sizeBytes,
+                FormattedSize: ByteSizeFormatter.Format(sizeBytes),
+                Extension: string.Empty,
+                SiblingOrder: order));
+
+            AppendDirectoryEntriesRecursively(childDirectory, childPath, entries, ref order);
+        }
+
+        foreach (CloudFile childFile in directory.Files)
+        {
+            order++;
+            string childPath = $"{directoryPath}/{childFile.Name}";
+            entries.Add(new DirectoryEntryResult(
+                childFile.Name,
+                IsDirectory: false,
+                FullPath: childPath,
+                SizeBytes: childFile.Size,
+                FormattedSize: ByteSizeFormatter.Format(childFile.Size),
+                Extension: Path.GetExtension(childFile.Name),
+                SiblingOrder: order));
+        }
+    }
+
     /// <summary>
     /// 匯出目錄樹 XML。
     /// </summary>
-    public XmlExportResult ExportXml()
+    public XmlExportResult ExportXml(ExportXmlRequest? request = null)
     {
-        XElement rootElement = BuildDirectoryElement(_root);
+        string directoryPath = string.IsNullOrWhiteSpace(request?.DirectoryPath) ? "Root" : request.DirectoryPath;
+        CloudDirectory? directory = CloudFileTreeLookup.FindDirectory(_root, directoryPath);
+        if (directory is null)
+        {
+            throw new InvalidOperationException($"Directory not found: {directoryPath}");
+        }
+
+        XElement rootElement = BuildDirectoryElement(directory);
         XDocument document = new(new XDeclaration("1.0", "utf-8", "yes"), rootElement);
         string xmlContent = document.ToString();
 
@@ -118,7 +185,7 @@ public sealed class CloudFileReadModelService : ICloudFileReadModelService
         {
             element.Add(new XElement("File",
                 new XAttribute("Name", file.Name),
-                new XAttribute("Size", $"{file.Size / 1024d:0.00} KB"),
+                new XAttribute("Size", ByteSizeFormatter.Format(file.Size)),
                 new XAttribute("CreatedTime", FormatFileCreatedTimeForXml(file.CreatedTime)),
                 new XAttribute("Type", file.FileType),
                 new XAttribute("Detail", file.DetailText)));
@@ -189,7 +256,7 @@ public sealed class CloudFileReadModelService : ICloudFileReadModelService
 
     private static string FormatFileSize(long sizeInBytes)
     {
-        return $"{sizeInBytes / 1024d:0.##}KB";
+        return ByteSizeFormatter.Format(sizeInBytes);
     }
 
     private static string FormatFileCreatedTimeForDisplay(DateTime createdTime)

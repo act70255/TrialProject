@@ -26,5 +26,9 @@ public interface ICloudFileFileCommandService
 
     OperationResult DeleteFile(DeleteFileRequest request);
 
+    OperationResult CopyFile(CopyFileRequest request);
+
     Task<OperationResult> DeleteFileAsync(DeleteFileRequest request, CancellationToken cancellationToken = default);
+
+    Task<OperationResult> CopyFileAsync(CopyFileRequest request, CancellationToken cancellationToken = default);
 }

@@ -92,10 +92,20 @@ public interface ICloudFileApplicationService
     /// </summary>
     SearchResult SearchByExtension(SearchByExtensionRequest request);
 
+    DirectoryEntriesResult GetDirectoryEntries(ListDirectoryEntriesRequest request);
+
     /// <summary>
     /// 匯出目錄樹 XML。
     /// </summary>
-    XmlExportResult ExportXml();
+    XmlExportResult ExportXml(ExportXmlRequest? request = null);
+
+    OperationResult CopyFile(CopyFileRequest request);
+
+    Task<OperationResult> CopyFileAsync(CopyFileRequest request, CancellationToken cancellationToken = default);
+
+    OperationResult CopyDirectory(CopyDirectoryRequest request);
+
+    Task<OperationResult> CopyDirectoryAsync(CopyDirectoryRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 取得功能旗標設定。

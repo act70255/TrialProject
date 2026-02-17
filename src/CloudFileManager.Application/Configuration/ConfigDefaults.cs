@@ -12,7 +12,6 @@ public static class ConfigDefaults
     {
         AppConfig finalConfig = config ?? new AppConfig();
         finalConfig.Storage ??= new StorageConfig();
-        finalConfig.Traversal ??= new TraversalConfig();
         finalConfig.Logging ??= new LoggingConfig();
         finalConfig.Output ??= new OutputConfig();
         finalConfig.AllowedExtensions ??= new AllowedExtensionsConfig();

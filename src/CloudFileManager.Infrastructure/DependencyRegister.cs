@@ -17,6 +17,7 @@ public static class DependencyRegister
     /// </summary>
     public static void Register(IServiceCollection services, AppConfig config, string basePath)
     {
+        config.Storage.StorageRootPath = StorageBootstrapper.ResolveStorageRootPath(config.Storage.StorageRootPath, basePath);
         AddDataAccess(services, config, basePath);
         AddFileStorage(services);
     }
@@ -72,6 +73,7 @@ public static class DependencyRegister
     /// </summary>
     private static void AddFileStorage(IServiceCollection services)
     {
+        services.AddMemoryCache();
         services.AddScoped<IStorageMetadataGateway, StorageMetadataGateway>();
         services.AddScoped<IXmlOutputWriter, FileSystemXmlOutputWriter>();
     }

@@ -44,8 +44,8 @@ flowchart LR
 - F5 Traverse Log：`SizeCalculationResult.TraverseLog`、`SearchResult.TraverseLog` 為跨通道可驗證輸出，Console/WebApi/Website 共享同一資料語意。
 
 ## 5. Traversal 一致性規則（驗收關鍵）
-- 走訪策略固定為 DFS Pre-order。
-- 同層節點順序以建立順序為準，不得額外排序。
+- 走訪策略以題目需求為主，不綁定特定演算法名稱。
+- 同層節點順序規則需文件化並保持一致，不得隱性改變輸出。
 - 計算與搜尋需共用相同走訪語意，避免「結果正確但過程不一致」。
 - Traverse Log 保留目錄與檔案訪問軌跡，供 API 與 UI 驗證。
 
@@ -85,6 +85,6 @@ flowchart LR
 - 未達條件時維持單一 Domain 專案，避免過度工程。
 
 ## 11. 與需求文件對齊
-- 本文件對齊 `docs/requirement.md` 的 F1~F5 與三通道驗證要求。
-- 規格細目與驗收編號請以 `docs/spec.md`、`docs/mvp_ac.md` 為準。
-- 設定邊界檢查流程請參考 `docs/config-boundary-checklist.md`。
+- 本文件對齊 `docs/require/requirement.md` 的 F1~F5 與驗證要求。
+- 規格細目與驗收編號請以 `docs/agect/spec.md`、`delivery/AcceptanceCriteria.md` 為準。
+- 設定邊界檢查流程請參考本文件「8. 設定責任邊界（WebApi / Website / Console）」章節。

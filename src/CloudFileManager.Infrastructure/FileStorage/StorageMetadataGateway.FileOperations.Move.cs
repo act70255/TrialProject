@@ -79,6 +79,7 @@ public sealed partial class StorageMetadataGateway
             return persistenceResult;
         }
 
+        InvalidateRootTreeCache();
         CleanupMoveConflictBackup(conflictContext, sourceFilePath, targetDirectoryPath);
         return persistenceResult;
     }
@@ -161,6 +162,7 @@ public sealed partial class StorageMetadataGateway
             return persistenceResult;
         }
 
+        InvalidateRootTreeCache();
         CleanupMoveConflictBackup(conflictContext, sourceFilePath, targetDirectoryPath);
         return persistenceResult;
     }

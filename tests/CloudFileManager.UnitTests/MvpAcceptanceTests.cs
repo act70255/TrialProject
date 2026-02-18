@@ -130,7 +130,7 @@ public class MvpAcceptanceTests
         CloudFileFileCommandService fileCommandService = new(root, registry, NoOpStorageMetadataGateway.Instance, config);
         CloudFileDirectoryCommandService directoryCommandService = new(root, NoOpStorageMetadataGateway.Instance, config);
 
-        ICloudFileApplicationService service = new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService);
+        ICloudFileApplicationService service = new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService, NoOpStorageMetadataGateway.Instance);
 
         service.CreateDirectory(new CreateDirectoryRequest("Root", "Project_Docs"));
         service.CreateDirectory(new CreateDirectoryRequest("Root", "Personal_Notes"));

@@ -40,3 +40,11 @@ public sealed record DirectoryEntryResult(
     string FormattedSize,
     string Extension,
     int SiblingOrder);
+
+public sealed record TagInfoResult(string Name, string Color);
+
+public sealed record TaggedNodeResult(string Path, IReadOnlyList<TagInfoResult> Tags);
+
+public sealed record TagListResult(IReadOnlyList<TaggedNodeResult> Items);
+
+public sealed record TagFindResult(string Tag, string Color, string ScopePath, IReadOnlyList<string> Paths);

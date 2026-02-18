@@ -43,7 +43,8 @@ public static class DependencyRegister
             ICloudFileReadModelService readModelService = serviceProvider.GetRequiredService<ICloudFileReadModelService>();
             ICloudFileFileCommandService fileCommandService = serviceProvider.GetRequiredService<ICloudFileFileCommandService>();
             ICloudFileDirectoryCommandService directoryCommandService = serviceProvider.GetRequiredService<ICloudFileDirectoryCommandService>();
-            return new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService);
+            IStorageMetadataGateway storageMetadataGateway = serviceProvider.GetRequiredService<IStorageMetadataGateway>();
+            return new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService, storageMetadataGateway);
         });
     }
 }

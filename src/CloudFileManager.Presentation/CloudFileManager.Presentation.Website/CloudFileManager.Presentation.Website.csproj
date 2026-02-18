@@ -11,4 +11,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <Target Name="BuildClientApp" BeforeTargets="Publish" Condition="'$(SkipClientBuild)' != 'true' and Exists('ClientApp\package.json')">
+    <Exec Command="npm ci" WorkingDirectory="ClientApp" />
+    <Exec Command="npm run build" WorkingDirectory="ClientApp" />
+  </Target>
+
 </Project>

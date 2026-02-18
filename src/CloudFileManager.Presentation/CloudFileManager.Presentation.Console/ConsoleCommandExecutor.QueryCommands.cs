@@ -149,7 +149,6 @@ public sealed partial class ConsoleCommandExecutor
         _sessionState.CurrentSortState = currentSortState;
         if (!Equals(previousSortState, currentSortState))
         {
-            _sessionState.MarkDirty();
             RecordUndoAction(new ConsoleUndoAction(
                 ConsoleUndoActionKind.SortSettingChanged,
                 PreviousSortState: previousSortState,
@@ -282,14 +281,14 @@ public sealed partial class ConsoleCommandExecutor
         {
             string name = node.Attribute("Name")?.Value ?? "Unknown";
             string tag = isRoot ? $"根目錄_{NormalizeTag(name)}" : $"目錄_{NormalizeTag(name)}";
-            builder.AppendLine($"{indent}<{tag}>");
+            builder.Append(indent).Append('<').Append(tag).AppendLine(">");
 
             foreach (XElement child in node.Elements())
             {
                 AppendSampleStyleElement(child, builder, depth + 1);
             }
 
-            builder.AppendLine($"{indent}</{tag}>");
+            builder.Append(indent).Append("</").Append(tag).AppendLine(">");
             return;
         }
 
@@ -300,7 +299,14 @@ public sealed partial class ConsoleCommandExecutor
             string detail = node.Attribute("Detail")?.Value ?? string.Empty;
             string tag = BuildFileTag(fileName);
             string content = $"{ConvertDetail(detail)}, 大小: {size}";
-            builder.AppendLine($"{indent}<{tag}>{content}</{tag}>");
+            builder.Append(indent)
+                .Append('<')
+                .Append(tag)
+                .Append('>')
+                .Append(content)
+                .Append("</")
+                .Append(tag)
+                .AppendLine(">");
         }
     }
 

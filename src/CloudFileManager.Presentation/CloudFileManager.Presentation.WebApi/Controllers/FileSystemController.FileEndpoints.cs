@@ -77,6 +77,16 @@ public sealed partial class FileSystemController
         return ToOperationActionResult(result);
     }
 
+    [HttpPost("files/copy")]
+    /// <summary>
+    /// 複製檔案。
+    /// </summary>
+    public async Task<ActionResult<OperationApiResponse>> CopyFile([FromBody] CopyFileApiRequest request, CancellationToken cancellationToken)
+    {
+        OperationResult result = await _service.CopyFileAsync(request.ToApplication(), cancellationToken);
+        return ToOperationActionResult(result);
+    }
+
     [HttpDelete("files")]
     /// <summary>
     /// 刪除檔案。

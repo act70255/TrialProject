@@ -1,6 +1,7 @@
 using CloudFileManager.Application.Interfaces;
 using CloudFileManager.Application.Models;
 using CloudFileManager.Presentation.WebApi.Model;
+using CloudFileManager.Presentation.WebApi.Services;
 using CloudFileManager.Shared.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,7 @@ public sealed partial class FileSystemController : ControllerBase
 
     private readonly ICloudFileApplicationService _service;
     private readonly ILocalFileUploadRequestFactory _localFileUploadRequestFactory;
+    private readonly WebApiSessionStateProcessor _sessionStateProcessor;
     private readonly ILogger<FileSystemController> _logger;
 
     /// <summary>
@@ -32,10 +34,12 @@ public sealed partial class FileSystemController : ControllerBase
     public FileSystemController(
         ICloudFileApplicationService service,
         ILocalFileUploadRequestFactory localFileUploadRequestFactory,
+        WebApiSessionStateProcessor sessionStateProcessor,
         ILogger<FileSystemController> logger)
     {
         _service = service;
         _localFileUploadRequestFactory = localFileUploadRequestFactory;
+        _sessionStateProcessor = sessionStateProcessor;
         _logger = logger;
     }
 
@@ -70,9 +74,9 @@ public sealed partial class FileSystemController : ControllerBase
     /// <summary>
     /// 匯出目錄樹 XML。
     /// </summary>
-    public ActionResult<XmlExportApiResponse> ExportXml()
+    public ActionResult<XmlExportApiResponse> ExportXml([FromQuery] ExportXmlApiRequest request)
     {
-        return Ok(_service.ExportXml().ToApi());
+        return Ok(_service.ExportXml(request.ToApplication()).ToApi());
     }
 
     [HttpGet("feature-flags")]
@@ -101,6 +105,32 @@ public sealed partial class FileSystemController : ControllerBase
         }
 
         int statusCode = GetStatusCode(result);
+        return StatusCode(statusCode, response);
+    }
+
+    private ActionResult<StatefulApiResponse<TData>> ToStatefulActionResult<TData>(SessionCommandResult<TData> result)
+    {
+        LogOperationCompletedMessage(
+            _logger,
+            HttpContext.Request.Method,
+            HttpContext.Request.Path,
+            result.Operation.Success,
+            result.Operation.ErrorCode,
+            null);
+
+        StatefulApiResponse<TData> response = new(
+            result.Operation.Success,
+            result.Operation.Message,
+            result.Operation.ErrorCode,
+            result.Data,
+            result.State,
+            result.OutputLines);
+        if (response.Success)
+        {
+            return Ok(response);
+        }
+
+        int statusCode = GetStatusCode(result.Operation);
         return StatusCode(statusCode, response);
     }
 

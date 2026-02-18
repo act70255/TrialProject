@@ -35,13 +35,6 @@ public sealed class ConsoleSessionState
     /// </summary>
     public Stack<ConsoleUndoAction> RedoStack { get; } = new();
 
-    /// <summary>
-     /// 標記狀態已變更。
-     /// </summary>
-    public void MarkDirty()
-    {
-        // 目前採用會話記憶體狀態，不做落盤。
-    }
 }
 
 public sealed record ConsoleClipboardItem(bool IsDirectory, string Path);

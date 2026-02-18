@@ -198,7 +198,7 @@ public class ConfigurationAcceptanceTests
         CloudFileFileCommandService fileCommandService = new(root, registry, NoOpStorageMetadataGateway.Instance, config);
         CloudFileDirectoryCommandService directoryCommandService = new(root, NoOpStorageMetadataGateway.Instance, config);
 
-        ICloudFileApplicationService service = new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService);
+        ICloudFileApplicationService service = new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService, NoOpStorageMetadataGateway.Instance);
         service.CreateDirectory(new CreateDirectoryRequest("Root", "Project_Docs"));
         service.UploadFile(new UploadFileRequest("Root/Project_Docs", "Requirement.docx", 500 * 1024, PageCount: 120));
         return service;

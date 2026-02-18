@@ -269,12 +269,276 @@ public sealed class SearchByExtensionApiRequest
         Extension = string.Empty;
     }
 
-    public SearchByExtensionApiRequest(string extension)
+    public SearchByExtensionApiRequest(string extension, string? directoryPath = null)
     {
         Extension = extension;
+        DirectoryPath = directoryPath;
     }
 
     [Required]
     [MinLength(1)]
     public string Extension { get; set; }
+
+    public string? DirectoryPath { get; set; }
+}
+
+/// <summary>
+/// XML 匯出 API 請求類別，負責封裝資料傳輸結構。
+/// </summary>
+public sealed class ExportXmlApiRequest
+{
+    public ExportXmlApiRequest()
+    {
+    }
+
+    public ExportXmlApiRequest(string? directoryPath)
+    {
+        DirectoryPath = directoryPath;
+    }
+
+    public string? DirectoryPath { get; set; }
+}
+
+/// <summary>
+/// 複製檔案 API 請求類別，負責封裝資料傳輸結構。
+/// </summary>
+public sealed class CopyFileApiRequest
+{
+    public CopyFileApiRequest()
+    {
+        SourceFilePath = string.Empty;
+        TargetDirectoryPath = string.Empty;
+    }
+
+    public CopyFileApiRequest(string sourceFilePath, string targetDirectoryPath, string? newFileName = null)
+    {
+        SourceFilePath = sourceFilePath;
+        TargetDirectoryPath = targetDirectoryPath;
+        NewFileName = newFileName;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string SourceFilePath { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public string TargetDirectoryPath { get; set; }
+
+    public string? NewFileName { get; set; }
+}
+
+/// <summary>
+/// 複製目錄 API 請求類別，負責封裝資料傳輸結構。
+/// </summary>
+public sealed class CopyDirectoryApiRequest
+{
+    public CopyDirectoryApiRequest()
+    {
+        SourceDirectoryPath = string.Empty;
+        TargetParentDirectoryPath = string.Empty;
+    }
+
+    public CopyDirectoryApiRequest(string sourceDirectoryPath, string targetParentDirectoryPath, string? newDirectoryName = null)
+    {
+        SourceDirectoryPath = sourceDirectoryPath;
+        TargetParentDirectoryPath = targetParentDirectoryPath;
+        NewDirectoryName = newDirectoryName;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string SourceDirectoryPath { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public string TargetParentDirectoryPath { get; set; }
+
+    public string? NewDirectoryName { get; set; }
+}
+
+/// <summary>
+/// State 驅動目錄清單 API 請求類別。
+/// </summary>
+public sealed class StatefulDirectoryEntriesApiRequest
+{
+    public string? DirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 切換目前目錄 API 請求類別。
+/// </summary>
+public sealed class ChangeCurrentDirectoryApiRequest
+{
+    public ChangeCurrentDirectoryApiRequest()
+    {
+        DirectoryPath = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string DirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 設定排序 API 請求類別。
+/// </summary>
+public sealed class SetSortApiRequest
+{
+    public SetSortApiRequest()
+    {
+        Key = string.Empty;
+        Direction = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string Key { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public string Direction { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 剪貼簿複製 API 請求類別。
+/// </summary>
+public sealed class ClipboardCopyApiRequest
+{
+    public ClipboardCopyApiRequest()
+    {
+        SourcePath = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string SourcePath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 剪貼簿貼上 API 請求類別。
+/// </summary>
+public sealed class ClipboardPasteApiRequest
+{
+    public string? TargetDirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 標籤指派 API 請求類別。
+/// </summary>
+public sealed class TagAssignApiRequest
+{
+    public TagAssignApiRequest()
+    {
+        Path = string.Empty;
+        Tag = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string Path { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public string Tag { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 標籤移除 API 請求類別。
+/// </summary>
+public sealed class TagRemoveApiRequest
+{
+    public TagRemoveApiRequest()
+    {
+        Path = string.Empty;
+        Tag = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string Path { get; set; }
+
+    [Required]
+    [MinLength(1)]
+    public string Tag { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 標籤列表 API 請求類別。
+/// </summary>
+public sealed class TagListApiRequest
+{
+    public string? Path { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// 標籤查詢 API 請求類別。
+/// </summary>
+public sealed class TagFindApiRequest
+{
+    public TagFindApiRequest()
+    {
+        Tag = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string Tag { get; set; }
+
+    public string? DirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// Undo/Redo API 請求類別。
+/// </summary>
+public sealed class HistoryActionApiRequest
+{
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// State 驅動搜尋 API 請求類別。
+/// </summary>
+public sealed class StatefulSearchApiRequest
+{
+    public StatefulSearchApiRequest()
+    {
+        Extension = string.Empty;
+    }
+
+    [Required]
+    [MinLength(1)]
+    public string Extension { get; set; }
+
+    public string? DirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
+}
+
+/// <summary>
+/// State 驅動 XML 匯出 API 請求類別。
+/// </summary>
+public sealed class StatefulXmlExportApiRequest
+{
+    public string? DirectoryPath { get; set; }
+
+    public ClientSessionStateApiModel? State { get; set; }
 }

@@ -8,18 +8,28 @@ namespace CloudFileManager.Application.Implementations;
 /// </summary>
 public sealed class CloudFileApplicationService : ICloudFileApplicationService
 {
+    private static readonly Dictionary<string, string> SupportedTags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Urgent"] = "Red",
+        ["Work"] = "Blue",
+        ["Personal"] = "Green"
+    };
+
     private readonly ICloudFileReadModelService _readModelService;
     private readonly ICloudFileFileCommandService _fileCommandService;
     private readonly ICloudFileDirectoryCommandService _directoryCommandService;
+    private readonly IStorageMetadataGateway _storageMetadataGateway;
 
     public CloudFileApplicationService(
         ICloudFileReadModelService readModelService,
         ICloudFileFileCommandService fileCommandService,
-        ICloudFileDirectoryCommandService directoryCommandService)
+        ICloudFileDirectoryCommandService directoryCommandService,
+        IStorageMetadataGateway storageMetadataGateway)
     {
         _readModelService = readModelService;
         _fileCommandService = fileCommandService;
         _directoryCommandService = directoryCommandService;
+        _storageMetadataGateway = storageMetadataGateway;
     }
 
     /// <summary>
@@ -209,12 +219,68 @@ public sealed class CloudFileApplicationService : ICloudFileApplicationService
         return _directoryCommandService.CopyDirectoryAsync(request, cancellationToken);
     }
 
+    public OperationResult AssignTag(AssignTagRequest request)
+    {
+        if (!TryNormalizeTag(request.Tag, out string tagName, out _))
+        {
+            return new OperationResult(false, $"Unsupported tag: {request.Tag}", Shared.Common.OperationErrorCodes.ValidationFailed);
+        }
+
+        return _storageMetadataGateway.AssignTag(request.Path, tagName);
+    }
+
+    public OperationResult RemoveTag(RemoveTagRequest request)
+    {
+        if (!TryNormalizeTag(request.Tag, out string tagName, out _))
+        {
+            return new OperationResult(false, $"Unsupported tag: {request.Tag}", Shared.Common.OperationErrorCodes.ValidationFailed);
+        }
+
+        return _storageMetadataGateway.RemoveTag(request.Path, tagName);
+    }
+
+    public TagListResult ListTags(ListTagsRequest request)
+    {
+        return _storageMetadataGateway.ListTags(request.Path);
+    }
+
+    public TagFindResult FindTags(FindTagsRequest request)
+    {
+        if (!TryNormalizeTag(request.Tag, out string tagName, out string color))
+        {
+            return new TagFindResult(request.Tag, color, request.DirectoryPath ?? "Root", []);
+        }
+
+        string scopePath = string.IsNullOrWhiteSpace(request.DirectoryPath) ? "Root" : request.DirectoryPath;
+        return _storageMetadataGateway.FindTaggedPaths(tagName, scopePath);
+    }
+
     /// <summary>
     /// 取得功能旗標設定。
     /// </summary>
     public FeatureFlagsResult GetFeatureFlags()
     {
         return _readModelService.GetFeatureFlags();
+    }
+
+    private static bool TryNormalizeTag(string rawTag, out string tagName, out string color)
+    {
+        tagName = string.Empty;
+        color = string.Empty;
+        string normalized = rawTag.Trim();
+        foreach ((string key, string value) in SupportedTags)
+        {
+            if (!key.Equals(normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            tagName = key;
+            color = value;
+            return true;
+        }
+
+        return false;
     }
 
 }

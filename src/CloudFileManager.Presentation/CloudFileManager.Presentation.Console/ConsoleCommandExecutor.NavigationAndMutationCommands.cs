@@ -130,10 +130,7 @@ public sealed partial class ConsoleCommandExecutor
 
         if (result.Success)
         {
-            string sourcePath = _sessionState.ClipboardItem.Path.Replace('\\', '/').Trim().TrimEnd('/');
-            string sourceName = sourcePath[(sourcePath.LastIndexOf('/') + 1)..];
-            string targetPath = $"{targetDirectoryPath.TrimEnd('/')}/{sourceName}";
-            DuplicateTagEntriesForCopy(sourcePath, targetPath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -174,7 +171,6 @@ public sealed partial class ConsoleCommandExecutor
 
         string path = ResolveDirectoryPath(args[0]);
         ConsoleDirectorySnapshot snapshot = ConsoleDirectorySnapshotBuilder.Build(_service.GetDirectoryTree());
-        SyncTagsWithSnapshot(snapshot);
         if (!TryResolveNodePath(snapshot, path, out string normalizedPath, out bool _))
         {
             PrintError($"Node not found: {path}");
@@ -187,16 +183,10 @@ public sealed partial class ConsoleCommandExecutor
             return;
         }
 
-        if (!_sessionState.NodeTags.TryGetValue(normalizedPath, out HashSet<string>? tags))
-        {
-            tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            _sessionState.NodeTags[normalizedPath] = tags;
-        }
-
-        bool added = tags.Add(tagName);
+        OperationResult result = _service.AssignTag(new AssignTagRequest(normalizedPath, tagName));
+        bool added = result.Success && result.Message.StartsWith("Tag assigned:", StringComparison.OrdinalIgnoreCase);
         if (added)
         {
-            _sessionState.MarkDirty();
             RecordUndoAction(new ConsoleUndoAction(
                 ConsoleUndoActionKind.TagAdded,
                 NodePath: normalizedPath,
@@ -204,9 +194,12 @@ public sealed partial class ConsoleCommandExecutor
                 TagColor: color));
         }
 
-        PrintResult(added, added
-            ? $"Tag assigned: {tagName} ({color}) -> {normalizedPath}"
-            : $"Tag already exists: {tagName} -> {normalizedPath}");
+        if (result.Success)
+        {
+            RefreshSessionTagsFromPersistence();
+        }
+
+        PrintResult(result.Success, result.Message);
     }
 
     private void HandleUpload(IReadOnlyList<string> args)
@@ -261,13 +254,11 @@ public sealed partial class ConsoleCommandExecutor
 
         string sourceFilePath = ResolveFilePath(args[0]);
         string targetDirectoryPath = ResolveDirectoryPath(args[1]);
-        string movedFileName = sourceFilePath[(sourceFilePath.LastIndexOf('/') + 1)..];
-        string movedFileTargetPath = $"{targetDirectoryPath.TrimEnd('/')}/{movedFileName}";
 
         OperationResult result = _service.MoveFile(new MoveFileRequest(sourceFilePath, targetDirectoryPath));
         if (result.Success)
         {
-            RebaseTagEntries(sourceFilePath, movedFileTargetPath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -282,14 +273,11 @@ public sealed partial class ConsoleCommandExecutor
         }
 
         string sourceFilePath = ResolveFilePath(args[0]);
-        int separatorIndex = sourceFilePath.LastIndexOf('/');
-        string parentPath = separatorIndex > 0 ? sourceFilePath[..separatorIndex] : "Root";
-        string targetFilePath = $"{parentPath}/{args[1]}";
 
         OperationResult result = _service.RenameFile(new RenameFileRequest(sourceFilePath, args[1]));
         if (result.Success)
         {
-            RebaseTagEntries(sourceFilePath, targetFilePath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -307,7 +295,7 @@ public sealed partial class ConsoleCommandExecutor
         OperationResult result = _service.DeleteFile(new DeleteFileRequest(filePath));
         if (result.Success)
         {
-            RemoveTagEntriesByPrefix(filePath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -335,13 +323,11 @@ public sealed partial class ConsoleCommandExecutor
 
         string sourceDirectoryPath = ResolveDirectoryPath(args[0]);
         string targetParentDirectoryPath = ResolveDirectoryPath(args[1]);
-        string movedDirectoryName = sourceDirectoryPath[(sourceDirectoryPath.LastIndexOf('/') + 1)..];
-        string movedDirectoryTargetPath = $"{targetParentDirectoryPath.TrimEnd('/')}/{movedDirectoryName}";
 
         OperationResult result = _service.MoveDirectory(new MoveDirectoryRequest(sourceDirectoryPath, targetParentDirectoryPath));
         if (result.Success)
         {
-            RebaseTagEntries(sourceDirectoryPath, movedDirectoryTargetPath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -356,14 +342,11 @@ public sealed partial class ConsoleCommandExecutor
         }
 
         string sourceDirectoryPath = ResolveDirectoryPath(args[0]);
-        int separatorIndex = sourceDirectoryPath.LastIndexOf('/');
-        string parentPath = separatorIndex > 0 ? sourceDirectoryPath[..separatorIndex] : "Root";
-        string targetDirectoryPath = $"{parentPath}/{args[1]}";
 
         OperationResult result = _service.RenameDirectory(new RenameDirectoryRequest(sourceDirectoryPath, args[1]));
         if (result.Success)
         {
-            RebaseTagEntries(sourceDirectoryPath, targetDirectoryPath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -381,7 +364,7 @@ public sealed partial class ConsoleCommandExecutor
         OperationResult result = _service.DeleteDirectory(new DeleteDirectoryRequest(directoryPath));
         if (result.Success)
         {
-            RemoveTagEntriesByPrefix(directoryPath);
+            RefreshSessionTagsFromPersistence();
         }
 
         PrintResult(result.Success, result.Message);
@@ -395,22 +378,20 @@ public sealed partial class ConsoleCommandExecutor
             return;
         }
 
-        ConsoleDirectorySnapshot snapshot = ConsoleDirectorySnapshotBuilder.Build(_service.GetDirectoryTree());
-        SyncTagsWithSnapshot(snapshot);
-
         if (args.Count == 1)
         {
-            if (_sessionState.NodeTags.Count == 0)
+            TagListResult allTagResult = _service.ListTags(new ListTagsRequest());
+            if (allTagResult.Items.Count == 0)
             {
                 PrintInfo("No tags assigned.");
                 return;
             }
 
             PrintSectionHeader("TAG LIST");
-            foreach (KeyValuePair<string, HashSet<string>> item in _sessionState.NodeTags.OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase))
+            foreach (TaggedNodeResult item in allTagResult.Items.OrderBy(item => item.Path, StringComparer.OrdinalIgnoreCase))
             {
-                string tagsText = string.Join(", ", item.Value.OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase).Select(tag => $"{tag}({SupportedTags[tag]})"));
-                System.Console.WriteLine($"{item.Key}: {tagsText}");
+                string tagsText = string.Join(", ", item.Tags.OrderBy(tag => tag.Name, StringComparer.OrdinalIgnoreCase).Select(tag => $"{tag.Name}({tag.Color})"));
+                System.Console.WriteLine($"{item.Path}: {tagsText}");
             }
 
             PrintSectionFooter("TAG LIST");
@@ -418,22 +399,27 @@ public sealed partial class ConsoleCommandExecutor
         }
 
         string path = ResolveDirectoryPath(args[1]);
+        ConsoleDirectorySnapshot snapshot = ConsoleDirectorySnapshotBuilder.Build(_service.GetDirectoryTree());
         if (!TryResolveNodePath(snapshot, path, out string normalizedPath, out bool _))
         {
             PrintError($"Node not found: {path}");
             return;
         }
 
-        if (!_sessionState.NodeTags.TryGetValue(normalizedPath, out HashSet<string>? tags) || tags.Count == 0)
+        TagListResult scopedTagResult = _service.ListTags(new ListTagsRequest(normalizedPath));
+        if (scopedTagResult.Items.Count == 0)
         {
             PrintInfo($"No tags on node: {normalizedPath}");
             return;
         }
 
         PrintSectionHeader("TAG LIST");
-        foreach (string tag in tags.OrderBy(item => item, StringComparer.OrdinalIgnoreCase))
+        foreach (TaggedNodeResult item in scopedTagResult.Items)
         {
-            System.Console.WriteLine($"{normalizedPath}: {tag} ({SupportedTags[tag]})");
+            foreach (TagInfoResult tag in item.Tags.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                System.Console.WriteLine($"{item.Path}: {tag.Name} ({tag.Color})");
+            }
         }
 
         PrintSectionFooter("TAG LIST");
@@ -447,7 +433,7 @@ public sealed partial class ConsoleCommandExecutor
             return;
         }
 
-        if (!TryNormalizeTag(args[1], out string tagName, out string color))
+        if (!TryNormalizeTag(args[1], out string tagName, out string _))
         {
             PrintError($"Unsupported tag: {args[1]}");
             return;
@@ -455,30 +441,25 @@ public sealed partial class ConsoleCommandExecutor
 
         string scopePath = args.Count == 3 ? ResolveDirectoryPath(args[2]) : CurrentDirectoryPath;
         ConsoleDirectorySnapshot snapshot = ConsoleDirectorySnapshotBuilder.Build(_service.GetDirectoryTree());
-        SyncTagsWithSnapshot(snapshot);
         if (!snapshot.DirectoryPaths.Contains(scopePath))
         {
             PrintError($"Directory not found: {scopePath}");
             return;
         }
 
-        List<string> matchedPaths = _sessionState.NodeTags
-            .Where(item => item.Value.Contains(tagName) && IsPathInScope(item.Key, scopePath))
-            .Select(item => item.Key)
-            .OrderBy(item => item, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        TagFindResult findResult = _service.FindTags(new FindTagsRequest(tagName, scopePath));
 
         PrintSectionHeader("TAG FIND RESULT");
-        System.Console.WriteLine($"[RESULT] Tag: {tagName} ({color})");
-        System.Console.WriteLine($"[RESULT] Scope: {scopePath}");
-        if (matchedPaths.Count == 0)
+        System.Console.WriteLine($"[RESULT] Tag: {findResult.Tag} ({findResult.Color})");
+        System.Console.WriteLine($"[RESULT] Scope: {findResult.ScopePath}");
+        if (findResult.Paths.Count == 0)
         {
             System.Console.WriteLine("[RESULT] No match.");
             PrintSectionFooter("TAG FIND RESULT");
             return;
         }
 
-        foreach (string path in matchedPaths)
+        foreach (string path in findResult.Paths)
         {
             System.Console.WriteLine(path);
         }
@@ -496,7 +477,6 @@ public sealed partial class ConsoleCommandExecutor
 
         string path = ResolveDirectoryPath(args[1]);
         ConsoleDirectorySnapshot snapshot = ConsoleDirectorySnapshotBuilder.Build(_service.GetDirectoryTree());
-        SyncTagsWithSnapshot(snapshot);
         if (!TryResolveNodePath(snapshot, path, out string normalizedPath, out bool _))
         {
             PrintError($"Node not found: {path}");
@@ -509,25 +489,18 @@ public sealed partial class ConsoleCommandExecutor
             return;
         }
 
-        if (!_sessionState.NodeTags.TryGetValue(normalizedPath, out HashSet<string>? tags) || !tags.Remove(tagName))
+        OperationResult result = _service.RemoveTag(new RemoveTagRequest(normalizedPath, tagName));
+        if (result.Success)
         {
-            PrintResult(false, $"Tag not found on node: {tagName} -> {normalizedPath}");
-            return;
+            RecordUndoAction(new ConsoleUndoAction(
+                ConsoleUndoActionKind.TagRemoved,
+                NodePath: normalizedPath,
+                TagName: tagName,
+                TagColor: SupportedTags[tagName]));
+            RefreshSessionTagsFromPersistence();
         }
 
-        if (tags.Count == 0)
-        {
-            _sessionState.NodeTags.Remove(normalizedPath);
-        }
-
-        _sessionState.MarkDirty();
-        RecordUndoAction(new ConsoleUndoAction(
-            ConsoleUndoActionKind.TagRemoved,
-            NodePath: normalizedPath,
-            TagName: tagName,
-            TagColor: SupportedTags[tagName]));
-
-        PrintResult(true, $"Tag removed: {tagName} -> {normalizedPath}");
+        PrintResult(result.Success, result.Message);
     }
 
     private void HandleUndo()
@@ -539,9 +512,14 @@ public sealed partial class ConsoleCommandExecutor
         }
 
         ConsoleUndoAction action = _sessionState.UndoStack.Pop();
-        ApplyUndoAction(action, isRedo: false);
+        if (!ApplyUndoAction(action, isRedo: false, out string? message))
+        {
+            _sessionState.UndoStack.Push(action);
+            PrintResult(false, message ?? "Undo failed.");
+            return;
+        }
+
         _sessionState.RedoStack.Push(action);
-        _sessionState.MarkDirty();
         PrintResult(true, $"Undo: {action.Kind}");
     }
 
@@ -554,9 +532,14 @@ public sealed partial class ConsoleCommandExecutor
         }
 
         ConsoleUndoAction action = _sessionState.RedoStack.Pop();
-        ApplyUndoAction(action, isRedo: true);
+        if (!ApplyUndoAction(action, isRedo: true, out string? message))
+        {
+            _sessionState.RedoStack.Push(action);
+            PrintResult(false, message ?? "Redo failed.");
+            return;
+        }
+
         _sessionState.UndoStack.Push(action);
-        _sessionState.MarkDirty();
         PrintResult(true, $"Redo: {action.Kind}");
     }
 
@@ -627,91 +610,15 @@ public sealed partial class ConsoleCommandExecutor
         return false;
     }
 
-    private void RemoveTagEntriesByPrefix(string pathPrefix)
-    {
-        string normalizedPrefix = pathPrefix.Replace('\\', '/').Trim().TrimEnd('/');
-        List<string> keysToRemove = _sessionState.NodeTags.Keys
-            .Where(path => path.Equals(normalizedPrefix, StringComparison.OrdinalIgnoreCase)
-                || path.StartsWith($"{normalizedPrefix}/", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (string key in keysToRemove)
-        {
-            _sessionState.NodeTags.Remove(key);
-        }
-
-        if (keysToRemove.Count > 0)
-        {
-            _sessionState.MarkDirty();
-        }
-    }
-
-    private void RebaseTagEntries(string oldPrefix, string newPrefix)
-    {
-        string normalizedOldPrefix = oldPrefix.Replace('\\', '/').Trim().TrimEnd('/');
-        string normalizedNewPrefix = newPrefix.Replace('\\', '/').Trim().TrimEnd('/');
-        List<KeyValuePair<string, HashSet<string>>> movedEntries = _sessionState.NodeTags
-            .Where(item => item.Key.Equals(normalizedOldPrefix, StringComparison.OrdinalIgnoreCase)
-                || item.Key.StartsWith($"{normalizedOldPrefix}/", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (KeyValuePair<string, HashSet<string>> entry in movedEntries)
-        {
-            _sessionState.NodeTags.Remove(entry.Key);
-            string suffix = entry.Key.Length == normalizedOldPrefix.Length ? string.Empty : entry.Key[normalizedOldPrefix.Length..];
-            string targetPath = $"{normalizedNewPrefix}{suffix}";
-            _sessionState.NodeTags[targetPath] = new HashSet<string>(entry.Value, StringComparer.OrdinalIgnoreCase);
-        }
-
-        if (movedEntries.Count > 0)
-        {
-            _sessionState.MarkDirty();
-        }
-    }
-
-    private void DuplicateTagEntriesForCopy(string sourcePrefix, string targetPrefix)
-    {
-        string normalizedSourcePrefix = sourcePrefix.Replace('\\', '/').Trim().TrimEnd('/');
-        string normalizedTargetPrefix = targetPrefix.Replace('\\', '/').Trim().TrimEnd('/');
-
-        List<KeyValuePair<string, HashSet<string>>> copiedEntries = _sessionState.NodeTags
-            .Where(item => item.Key.Equals(normalizedSourcePrefix, StringComparison.OrdinalIgnoreCase)
-                || item.Key.StartsWith($"{normalizedSourcePrefix}/", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (KeyValuePair<string, HashSet<string>> sourceEntry in copiedEntries)
-        {
-            string suffix = sourceEntry.Key.Length == normalizedSourcePrefix.Length
-                ? string.Empty
-                : sourceEntry.Key[normalizedSourcePrefix.Length..];
-            string copiedPath = $"{normalizedTargetPrefix}{suffix}";
-
-            if (!_sessionState.NodeTags.TryGetValue(copiedPath, out HashSet<string>? targetTags))
-            {
-                targetTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                _sessionState.NodeTags[copiedPath] = targetTags;
-            }
-
-            foreach (string tag in sourceEntry.Value)
-            {
-                targetTags.Add(tag);
-            }
-        }
-
-        if (copiedEntries.Count > 0)
-        {
-            _sessionState.MarkDirty();
-        }
-    }
-
     private void RecordUndoAction(ConsoleUndoAction action)
     {
         _sessionState.UndoStack.Push(action);
         _sessionState.RedoStack.Clear();
     }
 
-    private void ApplyUndoAction(ConsoleUndoAction action, bool isRedo)
+    private bool ApplyUndoAction(ConsoleUndoAction action, bool isRedo, out string? message)
     {
+        message = null;
         switch (action.Kind)
         {
             case ConsoleUndoActionKind.SortSettingChanged:
@@ -725,68 +632,46 @@ public sealed partial class ConsoleCommandExecutor
                     PrintInfo($"Sort setting: {_sessionState.CurrentSortState.Key} {_sessionState.CurrentSortState.Direction}");
                 }
 
-                break;
+                return true;
             case ConsoleUndoActionKind.TagAdded:
-                ApplyTagMutation(action, add: isRedo);
-                break;
+                return ApplyTagMutation(action, add: isRedo, out message);
             case ConsoleUndoActionKind.TagRemoved:
-                ApplyTagMutation(action, add: !isRedo);
-                break;
+                return ApplyTagMutation(action, add: !isRedo, out message);
+            default:
+                message = $"Unsupported undo action: {action.Kind}";
+                return false;
         }
     }
 
-    private void ApplyTagMutation(ConsoleUndoAction action, bool add)
+    private bool ApplyTagMutation(ConsoleUndoAction action, bool add, out string? message)
     {
+        message = null;
         if (string.IsNullOrWhiteSpace(action.NodePath) || string.IsNullOrWhiteSpace(action.TagName))
         {
-            return;
+            message = "Undo action is missing tag context.";
+            return false;
         }
 
-        if (add)
+        OperationResult result = add
+            ? _service.AssignTag(new AssignTagRequest(action.NodePath, action.TagName))
+            : _service.RemoveTag(new RemoveTagRequest(action.NodePath, action.TagName));
+        if (!result.Success)
         {
-            if (!_sessionState.NodeTags.TryGetValue(action.NodePath, out HashSet<string>? tags))
-            {
-                tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                _sessionState.NodeTags[action.NodePath] = tags;
-            }
-
-            tags.Add(action.TagName);
-            return;
+            message = result.Message;
+            return false;
         }
 
-        if (!_sessionState.NodeTags.TryGetValue(action.NodePath, out HashSet<string>? removeTags))
-        {
-            return;
-        }
-
-        removeTags.Remove(action.TagName);
-        if (removeTags.Count == 0)
-        {
-            _sessionState.NodeTags.Remove(action.NodePath);
-        }
+        RefreshSessionTagsFromPersistence();
+        return true;
     }
 
-    private void SyncTagsWithSnapshot(ConsoleDirectorySnapshot snapshot)
+    private void RefreshSessionTagsFromPersistence()
     {
-        List<string> keysToRemove = _sessionState.NodeTags.Keys
-            .Where(path => !snapshot.DirectoryPaths.Contains(path) && !TryFindFilePath(snapshot, path, out _))
-            .ToList();
-
-        foreach (string key in keysToRemove)
+        TagListResult result = _service.ListTags(new ListTagsRequest());
+        _sessionState.NodeTags.Clear();
+        foreach (TaggedNodeResult item in result.Items)
         {
-            _sessionState.NodeTags.Remove(key);
+            _sessionState.NodeTags[item.Path] = new HashSet<string>(item.Tags.Select(tag => tag.Name), StringComparer.OrdinalIgnoreCase);
         }
-
-        if (keysToRemove.Count > 0)
-        {
-            _sessionState.MarkDirty();
-        }
-    }
-
-    private static bool IsPathInScope(string nodePath, string scopePath)
-    {
-        string normalizedScope = scopePath.Replace('\\', '/').Trim().TrimEnd('/');
-        return nodePath.Equals(normalizedScope, StringComparison.OrdinalIgnoreCase)
-            || nodePath.StartsWith($"{normalizedScope}/", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -11,3 +11,5 @@ src/**/obj/
 *.db-shm
 *.db-wal
 /artifacts
+/samples/mvp/storage/audit.log
+/samples/mvp/storage/audit.log

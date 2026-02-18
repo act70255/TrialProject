@@ -407,7 +407,7 @@ public class PersistenceConsistencyTests
         CloudFileReadModelService readModelService = new(root, config, basePath, new FileSystemXmlOutputWriter());
         CloudFileFileCommandService fileCommandService = new(root, registry, gateway, config);
         CloudFileDirectoryCommandService directoryCommandService = new(root, gateway, config);
-        return new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService);
+        return new CloudFileApplicationService(readModelService, fileCommandService, directoryCommandService, gateway);
     }
 
     private static string ResolveStoragePath(AppConfig config, string storedPath)

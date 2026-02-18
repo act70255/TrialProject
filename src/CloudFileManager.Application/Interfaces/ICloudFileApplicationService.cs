@@ -107,6 +107,14 @@ public interface ICloudFileApplicationService
 
     Task<OperationResult> CopyDirectoryAsync(CopyDirectoryRequest request, CancellationToken cancellationToken = default);
 
+    OperationResult AssignTag(AssignTagRequest request);
+
+    OperationResult RemoveTag(RemoveTagRequest request);
+
+    TagListResult ListTags(ListTagsRequest request);
+
+    TagFindResult FindTags(FindTagsRequest request);
+
     /// <summary>
     /// 取得功能旗標設定。
     /// </summary>

@@ -1,6 +1,109 @@
-@CloudFileManager.Presentation.WebApi_HostAddress = http://localhost:5181
+@HostAddress = http://localhost:5181
+@ApiKey = dev-api-key
 
-GET {{CloudFileManager.Presentation.WebApi_HostAddress}}/weatherforecast/
+### 目錄樹
+GET {{HostAddress}}/api/filesystem/tree
+X-Api-Key: {{ApiKey}}
 Accept: application/json
 
-###
+### 一般搜尋（支援 directoryPath）
+GET {{HostAddress}}/api/filesystem/search?extension=.txt&directoryPath=Root
+X-Api-Key: {{ApiKey}}
+Accept: application/json
+
+### 一般 XML 匯出（支援 directoryPath）
+GET {{HostAddress}}/api/filesystem/xml?directoryPath=Root
+X-Api-Key: {{ApiKey}}
+Accept: application/json
+
+### State: lsr (entries query)
+POST {{HostAddress}}/api/filesystem/directories/entries/query
+X-Api-Key: {{ApiKey}}
+Content-Type: application/json
+
+{
+  "directoryPath": "Root",
+  "state": {
+    "currentDirectoryPath": "Root",
+    "currentSortState": {
+      "key": "name",
+      "direction": "asc"
+    },
+    "nodeTags": {},
+    "undoStack": [],
+    "redoStack": []
+  }
+}
+
+### State: copy to clipboard
+POST {{HostAddress}}/api/filesystem/clipboard/copy
+X-Api-Key: {{ApiKey}}
+Content-Type: application/json
+
+{
+  "sourcePath": "Root/docs",
+  "state": {
+    "currentDirectoryPath": "Root",
+    "nodeTags": {},
+    "undoStack": [],
+    "redoStack": []
+  }
+}
+
+### State: paste from clipboard
+POST {{HostAddress}}/api/filesystem/clipboard/paste
+X-Api-Key: {{ApiKey}}
+Content-Type: application/json
+
+{
+  "targetDirectoryPath": "Root/archive",
+  "state": {
+    "currentDirectoryPath": "Root",
+    "clipboardItem": {
+      "isDirectory": true,
+      "path": "Root/docs"
+    },
+    "nodeTags": {},
+    "undoStack": [],
+    "redoStack": []
+  }
+}
+
+### State: tag assign
+POST {{HostAddress}}/api/filesystem/tags/assign
+X-Api-Key: {{ApiKey}}
+Content-Type: application/json
+
+{
+  "path": "Root/docs",
+  "tag": "Work",
+  "state": {
+    "currentDirectoryPath": "Root",
+    "nodeTags": {},
+    "undoStack": [],
+    "redoStack": []
+  }
+}
+
+### State: undo
+POST {{HostAddress}}/api/filesystem/history/undo
+X-Api-Key: {{ApiKey}}
+Content-Type: application/json
+
+{
+  "state": {
+    "currentDirectoryPath": "Root",
+    "nodeTags": {
+      "Root/docs": ["Work"]
+    },
+    "undoStack": [
+      {
+        "kind": "TagAdded",
+        "nodePath": "Root/docs",
+        "tagName": "Work",
+        "tagColor": "Blue"
+      }
+    ],
+    "redoStack": []
+  }
+}

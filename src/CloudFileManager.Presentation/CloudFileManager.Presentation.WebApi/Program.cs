@@ -1,26 +1,29 @@
 using CloudFileManager.Presentation.WebApi;
 using CloudFileManager.Application.Configuration;
+using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 bool shouldRunMigrations = DependencyRegister.RegisterServices(builder);
+string apiSecurityHeaderName = builder.Configuration["ApiSecurity:HeaderName"] ?? "X-Api-Key";
+bool swaggerAutoAuthorize = builder.Configuration.GetValue<bool?>("ApiSecurity:SwaggerAutoAuthorize") ?? true;
 
 builder.Services.AddSwaggerGen(options =>
 {
     OpenApiSecurityScheme apiKeyScheme = new()
     {
-        Name = "X-Api-Key",
+        Name = apiSecurityHeaderName,
         Type = SecuritySchemeType.ApiKey,
         In = ParameterLocation.Header,
-        Description = "Provide API key in X-Api-Key header."
+        Description = $"Provide API key in {apiSecurityHeaderName} header."
     };
 
     options.AddSecurityDefinition("ApiKey", apiKeyScheme);
-    options.AddSecurityRequirement(document =>
+    options.AddSecurityRequirement(_ =>
     {
-        OpenApiSecuritySchemeReference securitySchemeReference = new("ApiKey", document, string.Empty);
+        OpenApiSecuritySchemeReference securitySchemeReference = new("ApiKey");
         return new OpenApiSecurityRequirement
         {
             [securitySchemeReference] = []
@@ -58,9 +61,30 @@ if (config.UseSwagger)
 {
     app.MapOpenApi();
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        string? configuredApiKey = app.Configuration["ApiSecurity:ApiKey"];
+        if (!swaggerAutoAuthorize || string.IsNullOrWhiteSpace(configuredApiKey))
+        {
+            return;
+        }
+
+        // 用意：提供驗收/示範時的零設定體驗，開啟 Swagger 後即可直接呼叫受保護 API。
+        // 風險：會把 API Key 暴露在瀏覽器端，因此僅建議內網或受控環境使用。
+        string escapedHeaderName = apiSecurityHeaderName.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal);
+        string escapedApiKey = configuredApiKey.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal);
+        string jsHeaderName = $"'{escapedHeaderName}'";
+        string jsApiKey = $"'{escapedApiKey}'";
+        string serializedApiKey = JsonSerializer.Serialize(configuredApiKey);
+        // 用意：即使使用者未點擊 Authorize，也會在每次送出前自動補上 API Key header。
+        options.UseRequestInterceptor($"(request) => {{ request.headers = request.headers || {{}}; if (!request.headers[{jsHeaderName}]) {{ request.headers[{jsHeaderName}] = {jsApiKey}; }} return request; }}");
+        options.EnablePersistAuthorization();
+        // 用意：讓 Swagger UI 啟動時先完成 ApiKey 授權，減少驗收流程中的手動操作。
+        options.HeadContent += $"<script>window.addEventListener('load',function(){{if(window.ui){{window.ui.preauthorizeApiKey('ApiKey',{serializedApiKey});}}}});</script>";
+    });
 }
 
+app.UseCors(DependencyRegister.GetCorsPolicyName());
 app.UseAuthentication();
 app.UseAuthorization();
 

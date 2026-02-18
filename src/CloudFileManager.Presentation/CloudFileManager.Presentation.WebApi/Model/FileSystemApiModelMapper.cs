@@ -32,7 +32,16 @@ public static class FileSystemApiModelMapper
         new(request.Path);
 
     public static SearchByExtensionRequest ToApplication(this SearchByExtensionApiRequest request) =>
-        new(request.Extension);
+        new(request.Extension, request.DirectoryPath);
+
+    public static ExportXmlRequest ToApplication(this ExportXmlApiRequest request) =>
+        new(request.DirectoryPath);
+
+    public static CopyFileRequest ToApplication(this CopyFileApiRequest request) =>
+        new(request.SourceFilePath, request.TargetDirectoryPath, request.NewFileName);
+
+    public static CopyDirectoryRequest ToApplication(this CopyDirectoryApiRequest request) =>
+        new(request.SourceDirectoryPath, request.TargetParentDirectoryPath, request.NewDirectoryName);
 
     public static DirectoryTreeApiResponse ToApi(this DirectoryTreeResult result) =>
         new(result.Lines);
@@ -51,4 +60,18 @@ public static class FileSystemApiModelMapper
 
     public static FeatureFlagsApiResponse ToApi(this FeatureFlagsResult result) =>
         new(result.Flags);
+
+    public static DirectoryEntriesApiResponse ToApi(this DirectoryEntriesResult result) =>
+        new(
+            result.IsFound,
+            result.Entries
+                .Select(entry => new DirectoryEntryApiResponse(
+                    entry.Name,
+                    entry.IsDirectory,
+                    entry.FullPath,
+                    entry.SizeBytes,
+                    entry.FormattedSize,
+                    entry.Extension,
+                    entry.SiblingOrder))
+                .ToArray());
 }

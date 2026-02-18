@@ -37,3 +37,11 @@ public sealed record ListDirectoryEntriesRequest(string DirectoryPath);
 public sealed record CopyFileRequest(string SourceFilePath, string TargetDirectoryPath, string? NewFileName = null);
 
 public sealed record CopyDirectoryRequest(string SourceDirectoryPath, string TargetParentDirectoryPath, string? NewDirectoryName = null);
+
+public sealed record AssignTagRequest(string Path, string Tag);
+
+public sealed record RemoveTagRequest(string Path, string Tag);
+
+public sealed record ListTagsRequest(string? Path = null);
+
+public sealed record FindTagsRequest(string Tag, string? DirectoryPath = null);

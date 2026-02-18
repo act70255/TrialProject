@@ -120,4 +120,24 @@ public sealed class NoOpStorageMetadataGateway : IStorageMetadataGateway
     {
         return Task.FromResult(RenameDirectory(directoryPath, newDirectoryName));
     }
+
+    public OperationResult AssignTag(string path, string tagName)
+    {
+        return new OperationResult(true, "Skipped persistence.");
+    }
+
+    public OperationResult RemoveTag(string path, string tagName)
+    {
+        return new OperationResult(true, "Skipped persistence.");
+    }
+
+    public TagListResult ListTags(string? path)
+    {
+        return new TagListResult([]);
+    }
+
+    public TagFindResult FindTaggedPaths(string tagName, string scopePath)
+    {
+        return new TagFindResult(tagName, string.Empty, scopePath, []);
+    }
 }

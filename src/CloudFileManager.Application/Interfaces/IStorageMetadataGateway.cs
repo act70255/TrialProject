@@ -113,4 +113,24 @@ public interface IStorageMetadataGateway
     /// 以非同步方式重新命名目錄。
     /// </summary>
     Task<OperationResult> RenameDirectoryAsync(string directoryPath, string newDirectoryName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 指派標籤到節點。
+    /// </summary>
+    OperationResult AssignTag(string path, string tagName);
+
+    /// <summary>
+    /// 移除節點標籤。
+    /// </summary>
+    OperationResult RemoveTag(string path, string tagName);
+
+    /// <summary>
+    /// 查詢標籤列表。
+    /// </summary>
+    TagListResult ListTags(string? path);
+
+    /// <summary>
+    /// 依標籤查詢節點。
+    /// </summary>
+    TagFindResult FindTaggedPaths(string tagName, string scopePath);
 }

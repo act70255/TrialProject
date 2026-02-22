@@ -5,6 +5,9 @@
 - `src/CloudFileManager.Infrastructure/DataAccess/EfCore/Entities/*.cs`
 - `src/CloudFileManager.Infrastructure/DataAccess/EfCore/Configurations/*.cs`
 
+![ERModel](../images/ERModel.png)
+
+<!-- 
 ```mermaid
 erDiagram
     DIRECTORIES ||--o{ DIRECTORIES : parent_child
@@ -58,11 +61,11 @@ erDiagram
         uuid file_id FK
         timestamp created_time
     }
-```
+``` -->
 
 ## 關係與鍵（對應實作）
 
-- `directories.parent_id -> directories.id`（自關聯，刪除限制 `Restrict`）
+- `directories.parent_id -> directories.id`（自關聯，刪除限制，滿足無限層資料夾結構  `Restrict`）
 - `files.directory_id -> directories.id`（一對多，刪除 `Cascade`）
 - `file_metadata.file_id -> files.id`（一對一主鍵關聯）
 - `file_metadata(file_id, file_type) -> files(id, file_type)`（複合 FK 對應 Alternate Key）
